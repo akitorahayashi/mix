@@ -8,8 +8,10 @@ pub enum AppError {
     Io(io::Error),
     /// Configuration or environment issue that prevents command execution.
     ConfigError(String),
-    /// Raised when a requested item cannot be located in storage.
-    ItemNotFound(String),
+    /// Raised when a requested resource cannot be located.
+    NotFound(String),
+    /// Clipboard interaction failure surfaced to the user.
+    ClipboardError(String),
 }
 
 impl Display for AppError {
@@ -17,7 +19,8 @@ impl Display for AppError {
         match self {
             AppError::Io(err) => write!(f, "{}", err),
             AppError::ConfigError(message) => write!(f, "{message}"),
-            AppError::ItemNotFound(id) => write!(f, "Item '{id}' was not found"),
+            AppError::NotFound(message) => write!(f, "{message}"),
+            AppError::ClipboardError(message) => write!(f, "{message}"),
         }
     }
 }
@@ -26,7 +29,7 @@ impl Error for AppError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             AppError::Io(err) => Some(err),
-            AppError::ConfigError(_) | AppError::ItemNotFound(_) => None,
+            AppError::ConfigError(_) | AppError::NotFound(_) | AppError::ClipboardError(_) => None,
         }
     }
 }
@@ -47,7 +50,16 @@ impl AppError {
         match self {
             AppError::Io(err) => err.kind(),
             AppError::ConfigError(_) => io::ErrorKind::InvalidInput,
-            AppError::ItemNotFound(_) => io::ErrorKind::NotFound,
+            AppError::NotFound(_) => io::ErrorKind::NotFound,
+            AppError::ClipboardError(_) => io::ErrorKind::Other,
         }
+    }
+
+    pub(crate) fn not_found<S: Into<String>>(message: S) -> Self {
+        AppError::NotFound(message.into())
+    }
+
+    pub(crate) fn clipboard_error<S: Into<String>>(message: S) -> Self {
+        AppError::ClipboardError(message.into())
     }
 }

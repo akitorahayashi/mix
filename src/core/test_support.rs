@@ -1,38 +1,69 @@
+use crate::core::clipboard::Clipboard;
 use crate::error::AppError;
-use crate::storage::Storage;
+use crate::storage::SnippetStorage;
 use std::cell::RefCell;
+use std::fs;
+use std::path::{Path, PathBuf};
+use tempfile::TempDir;
 
-#[derive(Default)]
-pub(crate) struct MockStorage {
-    pub add_calls: RefCell<Vec<(String, String)>>,
-    pub delete_calls: RefCell<Vec<String>>,
-    pub list_items_values: RefCell<Vec<String>>,
+pub(crate) struct TestSnippetStorage {
+    root: TempDir,
+    pub storage: SnippetStorage,
 }
 
-impl MockStorage {
-    pub fn set_list_items<I>(&self, items: I)
-    where
-        I: IntoIterator,
-        I::Item: Into<String>,
-    {
-        let mut values = self.list_items_values.borrow_mut();
-        values.clear();
-        values.extend(items.into_iter().map(Into::into));
+impl TestSnippetStorage {
+    pub fn new() -> Self {
+        let root = TempDir::new().expect("tempdir for storage");
+        let storage = SnippetStorage::from_root(root.path()).expect("storage init should succeed");
+        Self { root, storage }
+    }
+
+    pub fn write_snippet<P: AsRef<Path>>(&self, relative_path: P, contents: &str) -> PathBuf {
+        let absolute = self.root.path().join(relative_path.as_ref());
+        if let Some(parent) = absolute.parent() {
+            fs::create_dir_all(parent).expect("create snippet parent");
+        }
+        fs::write(&absolute, contents).expect("write snippet");
+        absolute
+    }
+
+    pub fn write_config(&self, contents: &str) {
+        let path = self.root.path().join("config.yml");
+        fs::write(path, contents).expect("write config");
     }
 }
 
-impl Storage for MockStorage {
-    fn add_item(&self, id: &str, content: &str) -> Result<(), AppError> {
-        self.add_calls.borrow_mut().push((id.to_string(), content.to_string()));
+struct RecordingClipboard {
+    buffer: RefCell<String>,
+}
+
+impl Default for RecordingClipboard {
+    fn default() -> Self {
+        Self { buffer: RefCell::new(String::new()) }
+    }
+}
+
+impl Clipboard for RecordingClipboard {
+    fn copy(&self, text: &str) -> Result<(), AppError> {
+        self.buffer.replace(text.to_string());
         Ok(())
     }
+}
 
-    fn list_items(&self) -> Result<Vec<String>, AppError> {
-        Ok(self.list_items_values.borrow().clone())
+pub(crate) struct RecordingClipboardHandle {
+    clipboard: RecordingClipboard,
+}
+
+impl RecordingClipboardHandle {
+    pub fn contents(&self) -> String {
+        self.clipboard.buffer.borrow().clone()
     }
 
-    fn delete_item(&self, id: &str) -> Result<(), AppError> {
-        self.delete_calls.borrow_mut().push(id.to_string());
-        Ok(())
+    pub fn as_ref(&self) -> &dyn Clipboard {
+        &self.clipboard
     }
+}
+
+pub(crate) fn recording_clipboard() -> RecordingClipboardHandle {
+    RecordingClipboardHandle { clipboard: RecordingClipboard::default() }
 }

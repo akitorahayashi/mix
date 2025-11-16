@@ -1,180 +1,207 @@
 use crate::error::AppError;
-use std::fs;
+use std::env;
 use std::path::{Component, Path, PathBuf};
-
-pub(crate) trait Storage {
-    fn add_item(&self, id: &str, content: &str) -> Result<(), AppError>;
-    fn list_items(&self) -> Result<Vec<String>, AppError>;
-    fn delete_item(&self, id: &str) -> Result<(), AppError>;
-}
+use walkdir::WalkDir;
 
 #[derive(Debug, Clone)]
-pub(crate) struct FilesystemStorage {
-    root_path: PathBuf,
+pub(crate) struct SnippetStorage {
+    commands_root: PathBuf,
+    config_path: PathBuf,
 }
 
-impl FilesystemStorage {
+impl SnippetStorage {
     pub fn new_default() -> Result<Self, AppError> {
-        let home = std::env::var("HOME")
-            .map_err(|_| AppError::config_error("HOME environment variable not set"))?;
-        Ok(Self { root_path: PathBuf::from(home).join(".config").join("rs-cli-tmpl") })
-    }
-
-    fn ensure_valid_id(&self, id: &str) -> Result<(), AppError> {
-        if Self::is_id_valid(id) {
-            Ok(())
-        } else {
-            Err(AppError::config_error(format!("invalid item identifier: {id}")))
+        if let Ok(custom) = env::var("MIX_COMMANDS_ROOT") {
+            return Self::from_root(PathBuf::from(custom));
         }
+
+        let home = env::var("HOME")
+            .map_err(|_| AppError::config_error("HOME environment variable not set"))?;
+        let root = PathBuf::from(home).join(".config").join("mix");
+        Self::from_root(root)
     }
 
-    fn is_id_valid(id: &str) -> bool {
-        !id.is_empty()
-            && id.chars().all(|c| c.is_alphanumeric() || c == '-')
-            && Path::new(id).components().all(|c| matches!(c, Component::Normal(_)))
+    pub fn from_root<P: AsRef<Path>>(root: P) -> Result<Self, AppError> {
+        let root = root.as_ref().to_path_buf();
+        Ok(Self { commands_root: root.join("commands"), config_path: root.join("config.yml") })
     }
 
-    fn item_dir(&self, id: &str) -> PathBuf {
-        self.root_path.join(id)
+    pub fn config_path(&self) -> &Path {
+        &self.config_path
     }
 
-    fn item_file(&self, id: &str) -> PathBuf {
-        self.item_dir(id).join("item.txt")
-    }
-}
-
-impl Storage for FilesystemStorage {
-    fn add_item(&self, id: &str, content: &str) -> Result<(), AppError> {
-        self.ensure_valid_id(id)?;
-        let directory = self.item_dir(id);
-        fs::create_dir_all(&directory)?;
-        fs::write(self.item_file(id), content)?;
-        Ok(())
-    }
-
-    fn list_items(&self) -> Result<Vec<String>, AppError> {
-        if !self.root_path.exists() {
+    pub fn enumerate_snippets(&self) -> Result<Vec<SnippetFile>, AppError> {
+        if !self.commands_root.exists() {
             return Ok(Vec::new());
         }
 
-        let mut ids = Vec::new();
-        for entry in fs::read_dir(&self.root_path)? {
-            let entry = entry?;
-            if entry.path().is_dir()
-                && let Some(name) = entry.file_name().to_str()
-            {
-                ids.push(name.to_string());
+        let mut files = Vec::new();
+        for entry in WalkDir::new(&self.commands_root) {
+            let entry = entry.map_err(|err| AppError::config_error(err.to_string()))?;
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            if entry.path().extension().and_then(|ext| ext.to_str()) != Some("md") {
+                continue;
+            }
+
+            let relative = entry
+                .path()
+                .strip_prefix(&self.commands_root)
+                .map_err(|_| AppError::config_error("Unable to derive relative snippet path"))?;
+            let relative_without_ext = relative.with_extension("");
+            let relative_path = path_to_string(&relative_without_ext)?;
+            let key = entry
+                .path()
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .ok_or_else(|| AppError::config_error("Snippet names must be valid UTF-8"))?
+                .to_string();
+
+            files.push(SnippetFile { key, relative_path, absolute_path: entry.into_path() });
+        }
+
+        files.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
+        Ok(files)
+    }
+
+    pub fn resolve_snippet(&self, raw_query: &str) -> Result<SnippetFile, AppError> {
+        let normalized = normalize_query(raw_query)?;
+        let mut exact_matches = Vec::new();
+        let mut key_matches = Vec::new();
+        let candidate_key =
+            normalized.rsplit('/').next().unwrap_or(normalized.as_str()).to_string();
+
+        for snippet in self.enumerate_snippets()? {
+            if snippet.relative_path == normalized {
+                exact_matches.push(snippet);
+            } else if snippet.key == normalized || snippet.key == candidate_key {
+                key_matches.push(snippet);
             }
         }
 
-        ids.sort();
-        Ok(ids)
+        if !exact_matches.is_empty() {
+            if exact_matches.len() == 1 {
+                return Ok(exact_matches.into_iter().next().unwrap());
+            }
+            return Err(AppError::config_error(format!(
+                "Multiple snippets match '{raw_query}': {}",
+                join_paths(&exact_matches)
+            )));
+        }
+
+        if key_matches.is_empty() {
+            return Err(AppError::not_found(format!(
+                "No snippet named '{raw_query}' under {}",
+                self.commands_root.display()
+            )));
+        }
+
+        if key_matches.len() > 1 {
+            return Err(AppError::config_error(format!(
+                "Multiple snippets share the name '{raw_query}': {}",
+                join_paths(&key_matches)
+            )));
+        }
+
+        Ok(key_matches.into_iter().next().unwrap())
     }
 
-    fn delete_item(&self, id: &str) -> Result<(), AppError> {
-        self.ensure_valid_id(id)?;
-        let directory = self.item_dir(id);
-        if !directory.exists() {
-            return Err(AppError::ItemNotFound(id.to_string()));
+    pub fn resolve_prompt_path(&self, relative: &Path) -> Result<PathBuf, AppError> {
+        let cleaned = sanitize_relative_path(relative)?;
+        let trimmed =
+            cleaned.strip_prefix("commands/").unwrap_or(cleaned.as_str()).trim_start_matches('/');
+        let resolved = if trimmed.is_empty() {
+            self.commands_root.clone()
+        } else {
+            self.commands_root.join(trimmed)
+        };
+
+        if !resolved.starts_with(&self.commands_root) {
+            return Err(AppError::config_error(format!(
+                "Prompt path '{}' escapes the commands directory",
+                relative.display()
+            )));
         }
-        fs::remove_dir_all(directory)?;
-        Ok(())
+
+        if !resolved.exists() {
+            return Err(AppError::not_found(format!(
+                "Prompt file '{}' was not found",
+                relative.display()
+            )));
+        }
+
+        if !resolved.is_file() {
+            return Err(AppError::config_error(format!(
+                "Prompt path '{}' must point to a file",
+                relative.display()
+            )));
+        }
+
+        Ok(resolved)
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serial_test::serial;
-    use std::ffi::OsString;
-    use std::fs;
-    use std::path::PathBuf;
-    use tempfile::TempDir;
+#[derive(Debug, Clone)]
+pub(crate) struct SnippetFile {
+    pub key: String,
+    pub relative_path: String,
+    pub absolute_path: PathBuf,
+}
 
-    struct TestContext {
-        root: TempDir,
-        original_home: Option<OsString>,
-    }
-
-    impl TestContext {
-        fn new() -> Self {
-            let root = TempDir::new().expect("failed to create temp dir");
-            let original_home = std::env::var_os("HOME");
-            unsafe {
-                std::env::set_var("HOME", root.path());
-            }
-
-            Self { root, original_home }
-        }
-
-        fn storage(&self) -> FilesystemStorage {
-            FilesystemStorage::new_default().expect("storage initialization should succeed")
-        }
-
-        fn storage_root(&self) -> PathBuf {
-            self.root.path().join(".config").join("rs-cli-tmpl")
-        }
-    }
-
-    impl Drop for TestContext {
-        fn drop(&mut self) {
-            match &self.original_home {
-                Some(value) => unsafe {
-                    std::env::set_var("HOME", value);
-                },
-                None => unsafe {
-                    std::env::remove_var("HOME");
-                },
+fn path_to_string(path: &Path) -> Result<String, AppError> {
+    let mut parts = Vec::new();
+    for component in path.components() {
+        match component {
+            Component::Normal(segment) => parts.push(
+                segment
+                    .to_str()
+                    .ok_or_else(|| AppError::config_error("Snippet paths must be UTF-8"))?
+                    .to_string(),
+            ),
+            Component::CurDir => continue,
+            _ => {
+                return Err(AppError::config_error(
+                    "Snippet paths cannot include traversal components",
+                ));
             }
         }
     }
 
-    #[test]
-    #[serial]
-    fn add_item_persists_contents() {
-        let ctx = TestContext::new();
-        let storage = ctx.storage();
+    Ok(parts.join("/"))
+}
 
-        storage.add_item("demo", "example content").expect("add_item should succeed");
-
-        let saved = ctx.storage_root().join("demo").join("item.txt");
-        let content = fs::read_to_string(saved).expect("failed to read saved item");
-        assert_eq!(content, "example content");
+fn normalize_query(raw: &str) -> Result<String, AppError> {
+    let trimmed = raw.trim().trim_start_matches('/');
+    if trimmed.is_empty() {
+        return Err(AppError::config_error("Snippet name cannot be empty"));
     }
 
-    #[test]
-    #[serial]
-    fn list_items_returns_all_ids() {
-        let ctx = TestContext::new();
-        let storage = ctx.storage();
-
-        storage.add_item("first", "one").unwrap();
-        storage.add_item("second", "two").unwrap();
-
-        let mut items = storage.list_items().expect("list_items succeeds");
-        items.sort();
-        assert_eq!(items, vec!["first", "second"]);
+    let mut normalized = trimmed.replace('\\', "/");
+    if let Some(stripped) = normalized.strip_prefix("commands/") {
+        normalized = stripped.to_string();
+    }
+    if let Some(stripped) = normalized.strip_suffix(".md") {
+        normalized = stripped.to_string();
     }
 
-    #[test]
-    #[serial]
-    fn delete_item_removes_directory() {
-        let ctx = TestContext::new();
-        let storage = ctx.storage();
+    ensure_safe_segments(&normalized)?;
+    Ok(normalized)
+}
 
-        storage.add_item("temp", "data").unwrap();
-        storage.delete_item("temp").expect("delete succeeds");
+fn sanitize_relative_path(path: &Path) -> Result<String, AppError> {
+    path_to_string(path)
+}
 
-        assert!(!ctx.storage_root().join("temp").exists());
+fn ensure_safe_segments(value: &str) -> Result<(), AppError> {
+    if value.split('/').any(|segment| segment.is_empty() || segment == "..") {
+        return Err(AppError::config_error(
+            "Snippet paths cannot contain empty or traversal segments",
+        ));
     }
+    Ok(())
+}
 
-    #[test]
-    #[serial]
-    fn delete_item_fails_if_not_exists() {
-        let ctx = TestContext::new();
-        let storage = ctx.storage();
-
-        let result = storage.delete_item("nonexistent");
-        assert!(matches!(result, Err(AppError::ItemNotFound(ref id)) if id == "nonexistent"));
-    }
+fn join_paths(snippets: &[SnippetFile]) -> String {
+    snippets.iter().map(|s| s.relative_path.clone()).collect::<Vec<_>>().join(", ")
 }

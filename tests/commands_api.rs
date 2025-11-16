@@ -1,49 +1,50 @@
 mod common;
 
 use common::TestContext;
-use rs_cli_tmpl::{add, delete, list};
+use mix::{copy_snippet, generate_slash_commands, list_snippets, SlashRequest, SlashTarget};
 use serial_test::serial;
+use std::fs;
 
 #[test]
 #[serial]
-fn add_persists_item_via_library_api() {
+fn copy_snippet_via_library_api() {
     let ctx = TestContext::new();
+    ctx.install_sample_catalog();
+    let clipboard = ctx.clipboard_file("api_clipboard.txt");
 
-    ctx.with_dir(ctx.work_dir(), || {
-        add("sample", "hello world").expect("library add should succeed");
-    });
+    let outcome = copy_snippet("wc").expect("copy via API succeeds");
+    assert_eq!(outcome.key, "wc");
+    assert!(outcome.relative_path.contains("wc"));
 
-    ctx.assert_saved_item_contains("sample", "hello world");
+    let captured = fs::read_to_string(clipboard).expect("clipboard file exists");
+    assert!(captured.contains("/wc"));
 }
 
 #[test]
 #[serial]
-fn list_returns_items_via_library_api() {
+fn list_snippets_returns_metadata() {
     let ctx = TestContext::new();
+    ctx.install_sample_catalog();
 
-    ctx.with_dir(ctx.work_dir(), || {
-        add("first", "one").expect("add should succeed");
-        add("second", "two").expect("add should succeed");
-        let mut items = list().expect("list should succeed");
-        items.sort();
-        assert_eq!(items, vec!["first".to_string(), "second".to_string()]);
-    });
+    let entries = list_snippets().expect("list via API succeeds");
+    assert_eq!(entries.len(), 2);
+    assert!(entries
+        .iter()
+        .any(|entry| entry.key == "wc" && entry.title.as_deref() == Some("Work on Tasks")));
 }
 
 #[test]
 #[serial]
-fn delete_removes_item_via_library_api() {
+fn generate_slash_commands_for_claude() {
     let ctx = TestContext::new();
+    ctx.install_sample_catalog();
 
-    ctx.with_dir(ctx.work_dir(), || {
-        add("temp", "value").expect("add should succeed");
-    });
+    let artifacts = generate_slash_commands(SlashRequest::Only(SlashTarget::Claude))
+        .expect("slash generation succeeds");
+    assert!(!artifacts.is_empty());
 
-    assert!(ctx.saved_item_path("temp").exists(), "Item should exist before delete");
-
-    ctx.with_dir(ctx.work_dir(), || {
-        delete("temp").expect("delete should succeed");
-    });
-
-    assert!(!ctx.saved_item_path("temp").exists(), "Item should be removed after delete");
+    let claude_prompt = ctx.claude_dir().join("wc.md");
+    assert!(claude_prompt.exists(), "Claude prompt should be written");
+    let content = fs::read_to_string(claude_prompt).expect("Claude prompt readable");
+    assert!(content.contains("title:"));
 }

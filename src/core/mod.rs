@@ -1,13 +1,8 @@
-pub mod add_item;
-pub mod delete_item;
-pub mod list_items;
-
-use crate::error::AppError;
-use crate::storage::Storage;
+pub(crate) mod clipboard;
+pub(crate) mod copy_snippet;
+pub(crate) mod generate_slash_commands;
+pub(crate) mod list_snippets;
+pub(crate) mod slash_config;
 
 #[cfg(test)]
 pub(crate) mod test_support;
-
-pub(crate) trait Execute<R> {
-    fn execute(&self, storage: &impl Storage) -> Result<R, AppError>;
-}

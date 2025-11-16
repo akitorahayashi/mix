@@ -1,118 +1,147 @@
-//! Shared testing utilities mirroring the reference project's fixture culture.
+//! Shared testing utilities for the mix CLI.
 
 use assert_cmd::Command;
+use std::cell::RefCell;
 use std::env;
 use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 
-/// Testing harness providing an isolated HOME/workspace pair for CLI and SDK exercises.
-#[allow(dead_code)]
 pub struct TestContext {
     root: TempDir,
     work_dir: PathBuf,
     original_home: Option<OsString>,
+    env_overrides: RefCell<Vec<(String, Option<OsString>)>>,
 }
 
 #[allow(dead_code)]
 impl TestContext {
-    /// Create a new isolated environment and point `HOME` to it so the CLI uses local storage.
+    /// Create a new isolated environment and point `HOME` at it.
     pub fn new() -> Self {
-        let root = TempDir::new().expect("Failed to create temp directory for tests");
+        let root = TempDir::new().expect("Failed to create temp directory");
         let work_dir = root.path().join("work");
-        fs::create_dir_all(&work_dir).expect("Failed to create test work directory");
+        fs::create_dir_all(&work_dir).expect("Failed to create test work dir");
 
         let original_home = env::var_os("HOME");
-        unsafe {
-            env::set_var("HOME", root.path());
-        }
+        env::set_var("HOME", root.path());
 
-        Self { root, work_dir, original_home }
+        let ctx = Self { root, work_dir, original_home, env_overrides: RefCell::new(Vec::new()) };
+        fs::create_dir_all(ctx.commands_root()).expect("Failed to create commands root");
+        ctx
     }
 
-    /// Absolute path to the emulated `$HOME` directory.
     pub fn home(&self) -> &Path {
         self.root.path()
     }
 
-    /// Path to the workspace directory used for CLI invocations.
     pub fn work_dir(&self) -> &Path {
         &self.work_dir
     }
 
-    /// Convenience helper to create additional sibling workspaces (e.g., for linking scenarios).
-    pub fn create_workspace(&self, name: &str) -> PathBuf {
-        let path = self.home().join(name);
-        fs::create_dir_all(&path).expect("Failed to create additional workspace");
-        path
+    pub fn commands_root(&self) -> PathBuf {
+        self.home().join(".config").join("mix").join("commands")
     }
 
-    /// Populate the default workspace with an item file containing the provided contents.
-    pub fn write_item_file(&self, contents: &str) {
-        let item_path = self.work_dir().join("item.txt");
-        fs::write(&item_path, contents).expect("Failed to write item file for test");
+    pub fn config_path(&self) -> PathBuf {
+        self.home().join(".config").join("mix").join("config.yml")
     }
 
-    /// Create an item file in the given directory with the provided contents.
-    pub fn write_item_file_in<P: AsRef<Path>>(&self, dir: P, contents: &str) {
-        let path = dir.as_ref().join("item.txt");
-        fs::write(path, contents).expect("Failed to write item file");
-    }
-
-    /// Build a command for invoking the compiled `rs-cli-tmpl` binary within the default workspace.
     pub fn cli(&self) -> Command {
         self.cli_in(self.work_dir())
     }
 
-    /// Build a command for invoking the compiled `rs-cli-tmpl` binary within a custom directory.
     pub fn cli_in<P: AsRef<Path>>(&self, dir: P) -> Command {
-        let mut cmd =
-            Command::cargo_bin("rs-cli-tmpl").expect("Failed to locate rs-cli-tmpl binary");
+        let mut cmd = Command::cargo_bin("mix").expect("Failed to locate mix binary");
         cmd.current_dir(dir.as_ref()).env("HOME", self.home());
         cmd
     }
 
-    /// Return the path where the CLI stores a saved item file for the provided identifier.
-    pub fn saved_item_path(&self, id: &str) -> PathBuf {
-        self.home().join(".config").join("rs-cli-tmpl").join(id).join("item.txt")
+    pub fn write_snippet(&self, relative: &str, contents: &str) -> PathBuf {
+        let path = self.commands_root().join(relative);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("Failed to create snippet parent");
+        }
+        fs::write(&path, contents).expect("Failed to write snippet");
+        path
     }
 
-    /// Assert that a saved item contains the provided value snippet.
-    pub fn assert_saved_item_contains(&self, id: &str, expected_snippet: &str) {
-        let item_path = self.saved_item_path(id);
-        assert!(item_path.exists(), "Expected saved item at {}", item_path.display());
-        let content = fs::read_to_string(&item_path).expect("Failed to read saved item");
-        assert!(
-            content.contains(expected_snippet),
-            "Saved item for id `{id}` did not contain `{expected}`; content: {content}",
-            expected = expected_snippet
+    pub fn write_config(&self, contents: &str) {
+        let path = self.config_path();
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("Failed to create config parent");
+        }
+        fs::write(path, contents).expect("Failed to write config file");
+    }
+
+    /// Seed a minimal catalog of snippets + config for integration tests.
+    pub fn install_sample_catalog(&self) {
+        self.write_snippet("w/wc.md", "# /wc\nPlan critically\n");
+        self.write_snippet("sdd/sdd-0-rq.md", "Requirements prompt\n");
+        self.write_config(
+            r#"---
+commands:
+  wc:
+    title: "Work on Tasks"
+    description: "Critical planning workflow"
+    prompt-file: "commands/w/wc.md"
+  sdd-0-rq:
+    title: "SDD Step 0"
+    description: "Requirements capture"
+    prompt-file: "commands/sdd/sdd-0-rq.md"
+"#,
         );
     }
 
-    /// Execute a closure after temporarily switching into the provided directory.
-    pub fn with_dir<F, R, P>(&self, dir: P, action: F) -> R
-    where
-        F: FnOnce() -> R,
-        P: AsRef<Path>,
-    {
-        let original = env::current_dir().expect("Failed to capture current dir");
-        env::set_current_dir(dir.as_ref()).expect("Failed to switch current dir");
-        let result = action();
-        env::set_current_dir(original).expect("Failed to restore current dir");
-        result
+    pub fn clipboard_file(&self, name: &str) -> PathBuf {
+        let file = self.work_dir().join(name);
+        self.set_env("MIX_CLIPBOARD_FILE", file.to_string_lossy());
+        file
+    }
+
+    pub fn codex_dir(&self) -> PathBuf {
+        self.home().join(".codex").join("prompts")
+    }
+
+    pub fn claude_dir(&self) -> PathBuf {
+        self.home().join(".claude").join("commands")
+    }
+
+    pub fn gemini_dir(&self) -> PathBuf {
+        self.home().join(".gemini").join("commands")
+    }
+
+    pub fn set_env<S: AsRef<str>>(&self, key: &str, value: S) {
+        self.remember_env(key);
+        env::set_var(key, value.as_ref());
+    }
+
+    fn remember_env(&self, key: &str) {
+        // HOME is already tracked separately via `original_home`.
+        if key == "HOME" {
+            return;
+        }
+        let mut overrides = self.env_overrides.borrow_mut();
+        if overrides.iter().any(|(existing, _)| existing == key) {
+            return;
+        }
+        overrides.push((key.to_string(), env::var_os(key)));
     }
 }
 
 impl Drop for TestContext {
     fn drop(&mut self) {
-        match &self.original_home {
-            Some(value) => unsafe {
-                env::set_var("HOME", value);
-            },
-            None => unsafe {
-                env::remove_var("HOME");
-            },
+        if let Some(original) = &self.original_home {
+            env::set_var("HOME", original);
+        } else {
+            env::remove_var("HOME");
+        }
+
+        for (key, value) in self.env_overrides.borrow().iter() {
+            match value {
+                Some(v) => env::set_var(key, v),
+                None => env::remove_var(key),
+            }
         }
     }
 }
