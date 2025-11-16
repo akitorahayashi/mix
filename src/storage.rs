@@ -131,6 +131,13 @@ impl SnippetStorage {
             )));
         }
 
+        if !resolved.is_file() {
+            return Err(AppError::config_error(format!(
+                "Prompt path '{}' must point to a file",
+                relative.display()
+            )));
+        }
+
         Ok(resolved)
     }
 }

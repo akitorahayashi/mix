@@ -1,7 +1,7 @@
 mod common;
 
 use common::TestContext;
-use mix::{SlashRequest, SlashTarget, copy_snippet, generate_slash_commands, list_snippets};
+use mix::{copy_snippet, generate_slash_commands, list_snippets, SlashRequest, SlashTarget};
 use serial_test::serial;
 use std::fs;
 
@@ -28,11 +28,9 @@ fn list_snippets_returns_metadata() {
 
     let entries = list_snippets().expect("list via API succeeds");
     assert_eq!(entries.len(), 2);
-    assert!(
-        entries
-            .iter()
-            .any(|entry| entry.key == "wc" && entry.title.as_deref() == Some("Work on Tasks"))
-    );
+    assert!(entries
+        .iter()
+        .any(|entry| entry.key == "wc" && entry.title.as_deref() == Some("Work on Tasks")));
 }
 
 #[test]

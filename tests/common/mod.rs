@@ -24,9 +24,7 @@ impl TestContext {
         fs::create_dir_all(&work_dir).expect("Failed to create test work dir");
 
         let original_home = env::var_os("HOME");
-        unsafe {
-            env::set_var("HOME", root.path());
-        }
+        env::set_var("HOME", root.path());
 
         let ctx = Self { root, work_dir, original_home, env_overrides: RefCell::new(Vec::new()) };
         fs::create_dir_all(ctx.commands_root()).expect("Failed to create commands root");
@@ -115,12 +113,14 @@ commands:
 
     pub fn set_env<S: AsRef<str>>(&self, key: &str, value: S) {
         self.remember_env(key);
-        unsafe {
-            env::set_var(key, value.as_ref());
-        }
+        env::set_var(key, value.as_ref());
     }
 
     fn remember_env(&self, key: &str) {
+        // HOME is already tracked separately via `original_home`.
+        if key == "HOME" {
+            return;
+        }
         let mut overrides = self.env_overrides.borrow_mut();
         if overrides.iter().any(|(existing, _)| existing == key) {
             return;
@@ -131,18 +131,16 @@ commands:
 
 impl Drop for TestContext {
     fn drop(&mut self) {
-        unsafe {
-            if let Some(original) = &self.original_home {
-                env::set_var("HOME", original);
-            } else {
-                env::remove_var("HOME");
-            }
+        if let Some(original) = &self.original_home {
+            env::set_var("HOME", original);
+        } else {
+            env::remove_var("HOME");
+        }
 
-            for (key, value) in self.env_overrides.borrow().iter() {
-                match value {
-                    Some(v) => env::set_var(key, v),
-                    None => env::remove_var(key),
-                }
+        for (key, value) in self.env_overrides.borrow().iter() {
+            match value {
+                Some(v) => env::set_var(key, v),
+                None => env::remove_var(key),
             }
         }
     }

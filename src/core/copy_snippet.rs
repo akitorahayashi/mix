@@ -35,7 +35,7 @@ impl CopySnippet<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::test_support::{TestSnippetStorage, recording_clipboard};
+    use crate::core::test_support::{recording_clipboard, TestSnippetStorage};
 
     #[test]
     fn copy_snippet_pushes_contents_to_clipboard() {

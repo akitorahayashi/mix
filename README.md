@@ -12,7 +12,7 @@ The project started from `rs-cli-tmpl`, keeping the layered architecture (CLI â†
 
 ## Storage layout
 
-```
+```text
 ~/.config/mix/
   config.yml          # shared metadata describing command titles/descriptions + prompt relative paths
   commands/

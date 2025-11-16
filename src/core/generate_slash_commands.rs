@@ -131,6 +131,14 @@ fn destination_for_target(target: SlashTarget) -> Result<PathBuf, AppError> {
 }
 
 fn clean_destination(path: &Path) -> Result<(), AppError> {
+    // Safety guard: avoid catastrophic deletion if MIX_*_DIR is misconfigured.
+    if !path.is_absolute() || path.parent().is_none() {
+        return Err(AppError::config_error(format!(
+            "Refusing to clean unsafe destination: {}",
+            path.display()
+        )));
+    }
+
     fs::create_dir_all(path)?;
     for entry in fs::read_dir(path)? {
         let entry = entry?;
@@ -171,11 +179,9 @@ commands:
         let codex_dir = temp.path().join("codex");
         let claude_dir = temp.path().join("claude");
         let gemini_dir = temp.path().join("gemini");
-        unsafe {
-            env::set_var("MIX_CODEX_DIR", &codex_dir);
-            env::set_var("MIX_CLAUDE_DIR", &claude_dir);
-            env::set_var("MIX_GEMINI_DIR", &gemini_dir);
-        }
+        env::set_var("MIX_CODEX_DIR", &codex_dir);
+        env::set_var("MIX_CLAUDE_DIR", &claude_dir);
+        env::set_var("MIX_GEMINI_DIR", &gemini_dir);
 
         let mut artifacts =
             generate(&storage.storage, &SlashTarget::ALL).expect("generation succeeds");
@@ -190,10 +196,8 @@ commands:
             }
         }
 
-        unsafe {
-            env::remove_var("MIX_CODEX_DIR");
-            env::remove_var("MIX_CLAUDE_DIR");
-            env::remove_var("MIX_GEMINI_DIR");
-        }
+        env::remove_var("MIX_CODEX_DIR");
+        env::remove_var("MIX_CLAUDE_DIR");
+        env::remove_var("MIX_GEMINI_DIR");
     }
 }
