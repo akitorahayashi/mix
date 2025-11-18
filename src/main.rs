@@ -1,5 +1,5 @@
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
-use mix::commands::{self, CopyOutcome, ListEntry, SlashGenerationOutcome, SlashRequest, SlashTarget};
+use mix::commands::{self, CopyOutcome, ListEntry, SlashRequest, SlashTarget};
 use mix::error::AppError;
 
 #[derive(Parser)]
