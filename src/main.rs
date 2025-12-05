@@ -4,6 +4,7 @@ use mix::error::AppError;
 
 #[derive(Parser)]
 #[command(name = "mix")]
+#[command(version)]
 #[command(about = "Unified CLI for mix snippets and slash command generation")]
 struct Cli {
     #[command(subcommand)]

@@ -28,6 +28,9 @@ The project started from `rs-cli-tmpl`, keeping the layered architecture (CLI â†
 # List available snippets
 mix list
 
+# Show version
+mix --version
+
 # Copy a snippet into the clipboard (uses pbcopy/wl-copy/xclip/clip automatically)
 mix wc
 

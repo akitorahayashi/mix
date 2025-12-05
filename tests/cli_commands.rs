@@ -46,3 +46,11 @@ fn copy_missing_snippet_fails() {
         .failure()
         .stderr(predicate::str::contains("No snippet named"));
 }
+
+#[test]
+#[serial]
+fn version_flag_works() {
+    let ctx = TestContext::new();
+
+    ctx.cli().arg("--version").assert().success();
+}
