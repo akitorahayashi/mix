@@ -35,6 +35,8 @@ pub fn touch(key: &str) -> Result<TouchOutcome, AppError> {
         "df" => PathBuf::from("diff.md"),
         "pdt" => PathBuf::from("pending/tasks.md"),
         "pdr" => PathBuf::from("pending/requirements.md"),
+        "wn" => PathBuf::from("warnings.md"),
+        "er" => PathBuf::from("error.md"),
         _ => return Err(AppError::InvalidKey(key.to_string())),
     };
 

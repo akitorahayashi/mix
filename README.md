@@ -47,6 +47,8 @@ mix t pdt      # Creates .mix/pending/tasks.md
 | df   | `.mix/diff.md`              |
 | pdt  | `.mix/pending/tasks.md`     |
 | pdr  | `.mix/pending/requirements.md`|
+| wn   | `.mix/warnings.md`          |
+| er   | `.mix/error.md`             |
 
 ### Environment overrides
 
