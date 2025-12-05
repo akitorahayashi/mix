@@ -1,5 +1,5 @@
-use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
-use mix::commands::{self, CopyOutcome, ListEntry, SlashRequest, SlashTarget};
+use clap::{CommandFactory, Parser, Subcommand};
+use mix::commands::{self, CopyOutcome, ListEntry};
 use mix::error::AppError;
 
 #[derive(Parser)]
@@ -17,19 +17,9 @@ struct Cli {
 enum Commands {
     /// List all available snippets
     List,
-    /// Generate Codex/Claude/Gemini slash command assets
-    Slash {
-        #[arg(value_enum)]
-        target: SlashArg,
-    },
-}
-
-#[derive(Copy, Clone, Debug, ValueEnum)]
-enum SlashArg {
-    All,
-    Codex,
-    Claude,
-    Gemini,
+    /// Create context files
+    #[command(alias = "t")]
+    Touch { key: String },
 }
 
 fn main() {
@@ -37,7 +27,7 @@ fn main() {
 
     let result = match (cli.command, cli.snippet) {
         (Some(Commands::List), _) => handle_list(),
-        (Some(Commands::Slash { target }), _) => handle_slash(target),
+        (Some(Commands::Touch { key }), _) => handle_touch(&key),
         (None, Some(snippet)) => handle_copy(&snippet),
         (None, None) => {
             Cli::command().print_help().ok();
@@ -58,6 +48,13 @@ fn handle_copy(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+fn handle_touch(key: &str) -> Result<(), AppError> {
+    let outcome = commands::touch_context(key)?;
+    let status = if outcome.existed { "found" } else { "created" };
+    println!("✅ Context file {status}: {}", outcome.path.display());
+    Ok(())
+}
+
 fn handle_list() -> Result<(), AppError> {
     let entries = commands::list_snippets()?;
     if entries.is_empty() {
@@ -75,31 +72,5 @@ fn handle_list() -> Result<(), AppError> {
             println!("    {description}");
         }
     }
-    Ok(())
-}
-
-fn handle_slash(target: SlashArg) -> Result<(), AppError> {
-    let request = match target {
-        SlashArg::All => SlashRequest::All,
-        SlashArg::Codex => SlashRequest::Only(SlashTarget::Codex),
-        SlashArg::Claude => SlashRequest::Only(SlashTarget::Claude),
-        SlashArg::Gemini => SlashRequest::Only(SlashTarget::Gemini),
-    };
-
-    // Execute generation
-    let artifacts = commands::generate_slash_commands(request)?;
-
-    // Aggregate results by target
-    let mut counts = std::collections::BTreeMap::new();
-    for artifact in artifacts {
-        *counts.entry(artifact.target).or_insert(0) += 1;
-    }
-
-    // Display summary
-    println!("✨ Generation complete:");
-    for (target, count) in counts {
-        println!("  - {}: {} file(s)", target.label(), count);
-    }
-
     Ok(())
 }

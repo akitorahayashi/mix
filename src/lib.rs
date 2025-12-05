@@ -7,6 +7,5 @@ mod core;
 mod storage;
 
 pub use commands::{
-    copy_snippet, generate_slash_commands, list_snippets, CopyOutcome, ListEntry,
-    SlashGenerationOutcome, SlashRequest, SlashTarget,
+    copy_snippet, list_snippets, touch_context, CopyOutcome, ListEntry, TouchOutcome,
 };

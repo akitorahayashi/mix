@@ -15,7 +15,8 @@ fn list_command_prints_snippets() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("wc").and(predicate::str::contains("SDD Step 0")));
+        // Metadata titles removed, just checking for keys/paths
+        .stdout(predicate::str::contains("wc").and(predicate::str::contains("sdd/sdd-0-rq")));
 }
 
 #[test]
@@ -33,36 +34,11 @@ fn copy_command_uses_clipboard_override() {
 
 #[test]
 #[serial]
-fn slash_command_generates_codex_files() {
-    let ctx = TestContext::new();
-    ctx.install_sample_catalog();
-
-    ctx.cli().args(["slash", "codex"]).assert().success().stdout(predicate::str::contains("codex"));
-
-    let codex_prompt = ctx.codex_dir().join("wc.md");
-    assert!(codex_prompt.exists(), "codex prompt should be generated");
-    let content = fs::read_to_string(codex_prompt).expect("codex prompt readable");
-    assert!(content.contains("Plan critically"));
-}
-
-#[test]
-#[serial]
-fn slash_all_generates_every_target() {
-    let ctx = TestContext::new();
-    ctx.install_sample_catalog();
-
-    ctx.cli().args(["slash", "all"]).assert().success();
-
-    assert!(ctx.codex_dir().join("wc.md").exists());
-    assert!(ctx.claude_dir().join("wc.md").exists());
-    assert!(ctx.gemini_dir().join("wc.toml").exists());
-}
-
-#[test]
-#[serial]
 fn copy_missing_snippet_fails() {
     let ctx = TestContext::new();
     ctx.install_sample_catalog();
+    // Ensure clipboard is configured so we don't fail on clipboard check
+    let _ = ctx.clipboard_file("clipboard_fail.txt");
 
     ctx.cli()
         .arg("unknown")

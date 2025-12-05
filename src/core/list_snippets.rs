@@ -1,7 +1,5 @@
-use crate::core::slash_config::SlashConfig;
 use crate::error::AppError;
 use crate::storage::SnippetStorage;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ListEntry {
@@ -13,27 +11,14 @@ pub(crate) struct ListEntry {
 
 pub(crate) fn list(storage: &SnippetStorage) -> Result<Vec<ListEntry>, AppError> {
     let snippets = storage.enumerate_snippets()?;
-    let metadata = SlashConfig::load_optional(storage)?;
-    let metadata_map: HashMap<_, _> = metadata.map(|cfg| cfg.into_map()).unwrap_or_default();
 
     let mut entries: Vec<ListEntry> = snippets
         .into_iter()
-        .map(|snippet| {
-            if let Some(meta) = metadata_map.get(&snippet.key) {
-                ListEntry {
-                    key: snippet.key,
-                    relative_path: snippet.relative_path,
-                    title: Some(meta.title.clone()),
-                    description: Some(meta.description.clone()),
-                }
-            } else {
-                ListEntry {
-                    key: snippet.key,
-                    relative_path: snippet.relative_path,
-                    title: None,
-                    description: None,
-                }
-            }
+        .map(|snippet| ListEntry {
+            key: snippet.key,
+            relative_path: snippet.relative_path,
+            title: None,
+            description: None,
         })
         .collect();
 
@@ -64,8 +49,8 @@ commands:
         let entries = list(&storage.storage).expect("list should succeed");
         assert_eq!(entries.len(), 2);
         let wc = entries.iter().find(|e| e.key == "wc").unwrap();
-        assert_eq!(wc.title.as_deref(), Some("Work critical"));
-        assert_eq!(wc.description.as_deref(), Some("Plan and execute"));
+        assert_eq!(wc.title.as_deref(), None); // Metadata support removed
+        assert_eq!(wc.description.as_deref(), None); // Metadata support removed
         assert!(entries.iter().any(|e| e.key == "sn" && e.title.is_none()));
     }
 

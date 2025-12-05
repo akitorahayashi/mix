@@ -12,6 +12,8 @@ pub enum AppError {
     NotFound(String),
     /// Clipboard interaction failure surfaced to the user.
     ClipboardError(String),
+    /// Invalid key provided for touch command
+    InvalidKey(String),
 }
 
 impl Display for AppError {
@@ -21,6 +23,7 @@ impl Display for AppError {
             AppError::ConfigError(message) => write!(f, "{message}"),
             AppError::NotFound(message) => write!(f, "{message}"),
             AppError::ClipboardError(message) => write!(f, "{message}"),
+            AppError::InvalidKey(key) => write!(f, "Invalid key: {key}"),
         }
     }
 }
@@ -29,7 +32,10 @@ impl Error for AppError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             AppError::Io(err) => Some(err),
-            AppError::ConfigError(_) | AppError::NotFound(_) | AppError::ClipboardError(_) => None,
+            AppError::ConfigError(_)
+            | AppError::NotFound(_)
+            | AppError::ClipboardError(_)
+            | AppError::InvalidKey(_) => None,
         }
     }
 }
@@ -52,6 +58,7 @@ impl AppError {
             AppError::ConfigError(_) => io::ErrorKind::InvalidInput,
             AppError::NotFound(_) => io::ErrorKind::NotFound,
             AppError::ClipboardError(_) => io::ErrorKind::Other,
+            AppError::InvalidKey(_) => io::ErrorKind::InvalidInput,
         }
     }
 
@@ -61,5 +68,9 @@ impl AppError {
 
     pub(crate) fn clipboard_error<S: Into<String>>(message: S) -> Self {
         AppError::ClipboardError(message.into())
+    }
+
+    pub fn invalid_key<S: Into<String>>(message: S) -> Self {
+        AppError::InvalidKey(message.into())
     }
 }

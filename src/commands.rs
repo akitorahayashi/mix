@@ -1,17 +1,10 @@
 use crate::core::clipboard::clipboard_from_env;
 use crate::core::copy_snippet::CopySnippet;
-use crate::core::generate_slash_commands;
 use crate::core::list_snippets;
+use crate::core::touch;
 use crate::error::AppError;
 use crate::storage::SnippetStorage;
 use std::path::PathBuf;
-
-pub use crate::core::generate_slash_commands::SlashTarget;
-
-pub enum SlashRequest {
-    All,
-    Only(SlashTarget),
-}
 
 #[derive(Debug, Clone)]
 pub struct CopyOutcome {
@@ -28,10 +21,10 @@ pub struct ListEntry {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone)]
-pub struct SlashGenerationOutcome {
-    pub target: SlashTarget,
+pub struct TouchOutcome {
+    pub key: String,
     pub path: PathBuf,
+    pub existed: bool,
 }
 
 pub fn copy_snippet(query: &str) -> Result<CopyOutcome, AppError> {
@@ -59,19 +52,7 @@ pub fn list_snippets() -> Result<Vec<ListEntry>, AppError> {
         .collect())
 }
 
-pub fn generate_slash_commands(
-    request: SlashRequest,
-) -> Result<Vec<SlashGenerationOutcome>, AppError> {
-    let storage = SnippetStorage::new_default()?;
-    let targets: Vec<SlashTarget> = match request {
-        SlashRequest::All => SlashTarget::ALL.to_vec(),
-        SlashRequest::Only(target) => vec![target],
-    };
-    // Pass callback to core logic
-    let artifacts = generate_slash_commands::generate(&storage, &targets)?;
-
-    Ok(artifacts
-        .into_iter()
-        .map(|artifact| SlashGenerationOutcome { target: artifact.target, path: artifact.path })
-        .collect())
+pub fn touch_context(key: &str) -> Result<TouchOutcome, AppError> {
+    let outcome = touch::touch(key)?;
+    Ok(TouchOutcome { key: outcome.key, path: outcome.path, existed: outcome.existed })
 }

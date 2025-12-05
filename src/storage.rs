@@ -6,7 +6,6 @@ use walkdir::WalkDir;
 #[derive(Debug, Clone)]
 pub(crate) struct SnippetStorage {
     commands_root: PathBuf,
-    config_path: PathBuf,
 }
 
 impl SnippetStorage {
@@ -23,11 +22,7 @@ impl SnippetStorage {
 
     pub fn from_root<P: AsRef<Path>>(root: P) -> Result<Self, AppError> {
         let root = root.as_ref().to_path_buf();
-        Ok(Self { commands_root: root.join("commands"), config_path: root.join("config.yml") })
-    }
-
-    pub fn config_path(&self) -> &Path {
-        &self.config_path
+        Ok(Self { commands_root: root.join("commands") })
     }
 
     pub fn enumerate_snippets(&self) -> Result<Vec<SnippetFile>, AppError> {
@@ -106,40 +101,6 @@ impl SnippetStorage {
 
         Ok(key_matches.into_iter().next().unwrap())
     }
-
-    pub fn resolve_prompt_path(&self, relative: &Path) -> Result<PathBuf, AppError> {
-        let cleaned = sanitize_relative_path(relative)?;
-        let trimmed =
-            cleaned.strip_prefix("commands/").unwrap_or(cleaned.as_str()).trim_start_matches('/');
-        let resolved = if trimmed.is_empty() {
-            self.commands_root.clone()
-        } else {
-            self.commands_root.join(trimmed)
-        };
-
-        if !resolved.starts_with(&self.commands_root) {
-            return Err(AppError::config_error(format!(
-                "Prompt path '{}' escapes the commands directory",
-                relative.display()
-            )));
-        }
-
-        if !resolved.exists() {
-            return Err(AppError::not_found(format!(
-                "Prompt file '{}' was not found",
-                relative.display()
-            )));
-        }
-
-        if !resolved.is_file() {
-            return Err(AppError::config_error(format!(
-                "Prompt path '{}' must point to a file",
-                relative.display()
-            )));
-        }
-
-        Ok(resolved)
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -187,10 +148,6 @@ fn normalize_query(raw: &str) -> Result<String, AppError> {
 
     ensure_safe_segments(&normalized)?;
     Ok(normalized)
-}
-
-fn sanitize_relative_path(path: &Path) -> Result<String, AppError> {
-    path_to_string(path)
 }
 
 fn ensure_safe_segments(value: &str) -> Result<(), AppError> {
