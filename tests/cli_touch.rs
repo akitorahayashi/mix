@@ -68,5 +68,5 @@ fn test_list_still_works() {
 
     let mut cmd = Command::cargo_bin("mix").unwrap();
 
-    cmd.env("MIX_HOME", &temp.path()).arg("list").assert().success();
+    cmd.env("MIX_HOME", temp.path()).arg("list").assert().success();
 }

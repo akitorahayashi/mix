@@ -1,5 +1,5 @@
-use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
-use mix::commands::{self, CopyOutcome, ListEntry, TouchOutcome};
+use clap::{CommandFactory, Parser, Subcommand};
+use mix::commands::{self, CopyOutcome, ListEntry};
 use mix::error::AppError;
 
 #[derive(Parser)]
