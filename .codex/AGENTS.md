@@ -10,7 +10,7 @@ This document provides a comprehensive overview of the `mix` project, including 
 
 `mix` is a Rust CLI tool designed to streamline two developer workflows:
 1.  Quickly copying predefined code snippets to the clipboard.
-2.  Generating "slash command" assets for various AI assistants (Codex, Claude, Gemini) from a shared catalog of snippets and configurations.
+2.  Managing context files in project directories with flexible path resolution and automatic directory creation via the `mix touch` command.
 
 It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies on a local directory (`~/.config/mix/`) to store markdown snippets and a central `config.yml` for metadata.
 
@@ -52,7 +52,10 @@ The project enforces coding standards using:
 - **Run Application**:
     - `mix list`: List all available snippets.
     - `mix <snippet>`: Copy a specific snippet to the clipboard.
-    - `mix slash <target>`: Generate slash command assets for `all`, `codex`, `claude`, or `gemini`.
+    - `mix touch <key>` / `mix t <key>`: Create context files in `.mix/` directory.
+        - Supports predefined aliases (tk, rq, rv, df, pdt, pdr, wn, er)
+        - Supports dynamic paths with auto `.md` extension and directory creation
+        - Example: `mix t docs/spec` creates `.mix/docs/spec.md`
 - **Linting**:
     - `cargo fmt --check`: Check code formatting.
     - `cargo clippy --all-targets --all-features -- -D warnings`: Run the linter and check for warnings.

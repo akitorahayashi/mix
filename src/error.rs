@@ -14,6 +14,8 @@ pub enum AppError {
     ClipboardError(String),
     /// Invalid key provided for touch command
     InvalidKey(String),
+    /// Path traversal attempt detected (security violation)
+    PathTraversal(String),
 }
 
 impl Display for AppError {
@@ -24,6 +26,7 @@ impl Display for AppError {
             AppError::NotFound(message) => write!(f, "{message}"),
             AppError::ClipboardError(message) => write!(f, "{message}"),
             AppError::InvalidKey(key) => write!(f, "Invalid key: {key}"),
+            AppError::PathTraversal(message) => write!(f, "{message}"),
         }
     }
 }
@@ -35,7 +38,8 @@ impl Error for AppError {
             AppError::ConfigError(_)
             | AppError::NotFound(_)
             | AppError::ClipboardError(_)
-            | AppError::InvalidKey(_) => None,
+            | AppError::InvalidKey(_)
+            | AppError::PathTraversal(_) => None,
         }
     }
 }
@@ -59,6 +63,7 @@ impl AppError {
             AppError::NotFound(_) => io::ErrorKind::NotFound,
             AppError::ClipboardError(_) => io::ErrorKind::Other,
             AppError::InvalidKey(_) => io::ErrorKind::InvalidInput,
+            AppError::PathTraversal(_) => io::ErrorKind::InvalidInput,
         }
     }
 
@@ -72,5 +77,9 @@ impl AppError {
 
     pub fn invalid_key<S: Into<String>>(message: S) -> Self {
         AppError::InvalidKey(message.into())
+    }
+
+    pub fn path_traversal<S: Into<String>>(message: S) -> Self {
+        AppError::PathTraversal(message.into())
     }
 }

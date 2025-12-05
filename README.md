@@ -35,9 +35,14 @@ mix wc
 mix touch tk   # Creates .mix/tasks.md
 mix t rq       # Creates .mix/requirements.md
 mix t pdt      # Creates .mix/pending/tasks.md
+
+# Dynamic path support (new!)
+mix t myfile          # Creates .mix/myfile.md (auto-appends .md)
+mix t docs/spec       # Creates .mix/docs/spec.md (auto-creates directories)
+mix t config.yaml     # Creates .mix/config.yaml (preserves extension)
 ```
 
-### Context Management Keys
+### Context Management Keys (Aliases)
 
 | Key  | Path                        |
 |------|-----------------------------|
@@ -49,6 +54,14 @@ mix t pdt      # Creates .mix/pending/tasks.md
 | pdr  | `.mix/pending/requirements.md`|
 | wn   | `.mix/warnings.md`          |
 | er   | `.mix/error.md`             |
+
+### Dynamic Path Resolution
+
+When no alias matches, the input is treated as a relative path:
+
+- **Extension completion**: If no extension is specified, `.md` is automatically appended
+- **Directory creation**: Parent directories are created automatically (e.g., `sdd/rq` creates `.mix/sdd/rq.md`)
+- **Security**: Path traversal attempts (using `..`) are rejected to prevent creating files outside `.mix/`
 
 ### Environment overrides
 
