@@ -1,3 +1,4 @@
+use crate::core::clean;
 use crate::core::clipboard::clipboard_from_env;
 use crate::core::copy_snippet::CopySnippet;
 use crate::core::list_snippets;
@@ -5,6 +6,8 @@ use crate::core::touch;
 use crate::error::AppError;
 use crate::storage::SnippetStorage;
 use std::path::PathBuf;
+
+pub use crate::core::clean::CleanOutcome;
 
 #[derive(Debug, Clone)]
 pub struct CopyOutcome {
@@ -25,6 +28,10 @@ pub struct TouchOutcome {
     pub key: String,
     pub path: PathBuf,
     pub existed: bool,
+}
+
+pub fn clean_context(key: Option<String>) -> Result<CleanOutcome, AppError> {
+    clean::clean(key)
 }
 
 pub fn copy_snippet(query: &str) -> Result<CopyOutcome, AppError> {

@@ -37,10 +37,19 @@ pub fn resolve_path(key: &str) -> PathBuf {
         return PathBuf::from(mapped);
     }
 
-    // 2. Generate dynamic path
+    // 2. Dynamic "tk{N}" Pattern
+    if key.starts_with("tk") {
+        let remainder = &key[2..];
+        // Ensure remainder is non-empty and all numeric
+        if !remainder.is_empty() && remainder.chars().all(char::is_numeric) {
+            return PathBuf::from(format!("tasks/tasks{}.md", remainder));
+        }
+    }
+
+    // 3. Generate dynamic path
     let mut path = PathBuf::from(key);
 
-    // 3. Extension completion (if no extension specified)
+    // 4. Extension completion (if no extension specified)
     if path.extension().is_none() {
         path.set_extension("md");
     }
@@ -127,7 +136,7 @@ pub fn touch(key: &str) -> Result<TouchOutcome, AppError> {
     Ok(TouchOutcome { key: key.to_string(), path: target_path, existed })
 }
 
-fn find_project_root() -> Result<PathBuf, AppError> {
+pub fn find_project_root() -> Result<PathBuf, AppError> {
     // For now, assume current directory is root or we look for .git
     // But simplest is to use current directory.
     // If we want to be robust, we can look for .git up the tree.
@@ -153,6 +162,18 @@ mod tests {
     fn test_resolve_path_alias_pdt() {
         let path = resolve_path("pdt");
         assert_eq!(path, PathBuf::from("pending/tasks.md"));
+    }
+
+    #[test]
+    fn test_resolve_path_dynamic_alias_tk1() {
+        let path = resolve_path("tk1");
+        assert_eq!(path, PathBuf::from("tasks/tasks1.md"));
+    }
+
+    #[test]
+    fn test_resolve_path_dynamic_alias_tk99() {
+        let path = resolve_path("tk99");
+        assert_eq!(path, PathBuf::from("tasks/tasks99.md"));
     }
 
     #[test]

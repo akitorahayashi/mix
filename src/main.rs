@@ -21,6 +21,11 @@ enum Commands {
     /// Create context files
     #[command(alias = "t")]
     Touch { key: String },
+    /// Clean context files or directory
+    Clean {
+        /// Optional key to clean a specific file (e.g., 'tk', 'tk1')
+        key: Option<String>,
+    },
 }
 
 fn main() {
@@ -29,6 +34,7 @@ fn main() {
     let result = match (cli.command, cli.snippet) {
         (Some(Commands::List), _) => handle_list(),
         (Some(Commands::Touch { key }), _) => handle_touch(&key),
+        (Some(Commands::Clean { key }), _) => handle_clean(key),
         (None, Some(snippet)) => handle_copy(&snippet),
         (None, None) => {
             Cli::command().print_help().ok();
@@ -53,6 +59,12 @@ fn handle_touch(key: &str) -> Result<(), AppError> {
     let outcome = commands::touch_context(key)?;
     let status = if outcome.existed { "found" } else { "created" };
     println!("✅ Context file {status}: {}", outcome.path.display());
+    Ok(())
+}
+
+fn handle_clean(key: Option<String>) -> Result<(), AppError> {
+    let outcome = commands::clean_context(key)?;
+    println!("✅ {}", outcome.message);
     Ok(())
 }
 
