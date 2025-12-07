@@ -1,4 +1,4 @@
-use crate::core::touch::{find_project_root, resolve_path};
+use crate::core::touch::{find_project_root, resolve_path, validate_path};
 use crate::error::AppError;
 use std::fs;
 
@@ -23,6 +23,10 @@ pub fn clean(key: Option<String>) -> Result<CleanOutcome, AppError> {
         Some(k) => {
             // mix clean tk (Delete specific file)
             let relative_path = resolve_path(&k);
+
+            // Validate path for security (no traversal or absolute paths)
+            validate_path(&k, &relative_path)?;
+
             let target_path = mix_dir.join(&relative_path);
 
             if target_path.exists() {
@@ -30,15 +34,14 @@ pub fn clean(key: Option<String>) -> Result<CleanOutcome, AppError> {
 
                 // Optional: Attempt to remove empty parent dirs
                 // We walk up from the file's parent until we hit .mix
-                if let Some(mut parent) = target_path.parent() {
-                    while parent.starts_with(&mix_dir) && parent != mix_dir {
-                        // Attempt to remove the directory. This will fail if it's not empty, which is exactly what we want.
-                        if fs::remove_dir(parent).is_err() {
+                if let Some(parent) = target_path.parent() {
+                    for p in parent.ancestors() {
+                        if !p.starts_with(&mix_dir) || p == mix_dir {
                             break;
                         }
-                        if let Some(p) = parent.parent() {
-                            parent = p;
-                        } else {
+                        // Attempt to remove the directory. This will fail if it's not empty,
+                        // which is what we want. If it fails, we stop.
+                        if fs::remove_dir(p).is_err() {
                             break;
                         }
                     }
