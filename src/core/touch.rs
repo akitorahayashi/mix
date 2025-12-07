@@ -38,8 +38,7 @@ pub fn resolve_path(key: &str) -> PathBuf {
     }
 
     // 2. Dynamic "tk{N}" Pattern
-    if key.starts_with("tk") {
-        let remainder = &key[2..];
+    if let Some(remainder) = key.strip_prefix("tk") {
         // Ensure remainder is non-empty and all numeric
         if !remainder.is_empty() && remainder.chars().all(char::is_numeric) {
             return PathBuf::from(format!("tasks/tasks{}.md", remainder));
