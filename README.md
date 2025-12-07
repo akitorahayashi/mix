@@ -6,9 +6,6 @@
    `~/.config/mix/commands/` into your clipboard.
 2. **Context Orchestration** – type `mix touch <key>` (alias `mix t`) to create or manage context files in your project.
 
-The project started from `rs-cli-tmpl`, keeping the layered architecture (CLI → command handlers → core logic
-→ storage) while replacing the sample CRUD commands with real snippet-aware behaviors.
-
 ## Storage layout
 
 ```text
