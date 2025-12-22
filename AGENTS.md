@@ -1,10 +1,6 @@
-# AGENTS.md: Development Overview
+# Development Overview
 
 This document provides a comprehensive overview of the `mix` project, including its architecture, coding standards, and key development tasks.
-
-## Project Name
-
-- **Name**: `mix`
 
 ## Project Summary
 
