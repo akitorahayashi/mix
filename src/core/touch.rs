@@ -19,6 +19,9 @@ static ALIASES: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(||
     m.insert("pdr", "pending/requirements.md");
     m.insert("wn", "warnings.md");
     m.insert("er", "error.md");
+    m.insert("if", "info.md");
+    m.insert("rp", "report.md");
+    m.insert("aif", "additional_info.md");
     m
 });
 
@@ -211,6 +214,9 @@ mod tests {
             ("pdr", "pending/requirements.md"),
             ("wn", "warnings.md"),
             ("er", "error.md"),
+            ("if", "info.md"),
+            ("rp", "report.md"),
+            ("aif", "additional_info.md"),
         ];
 
         for (alias, expected_path) in cases {
