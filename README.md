@@ -53,15 +53,18 @@ mix t config.yaml     # Creates .mix/config.yaml (preserves extension)
 | Key  | Path                        |
 |------|-----------------------------|
 | df   | `.mix/diff.md`              |
-| er   | `.mix/error.md`             |
-| is   | `.mix/issue.md`             |
-| pdr  | `.mix/pending/requirements.md`|
-| pdt  | `.mix/pending/tasks.md`     |
-| rq   | `.mix/requirements.md`      |
-| rv   | `.mix/review.md`            |
-| tk   | `.mix/tasks.md`             |
-| tko  | `.mix/tasks_outline.md`     |
 | wn   | `.mix/warnings.md`          |
+| is   | `.mix/issue.md`             |
+| er   | `.mix/error.md`             |
+| rp   | `.mix/report.md`            |
+| if   | `.mix/info.md`              |
+| aif  | `.mix/additional_info.md`   |
+| rq   | `.mix/requirements.md`      |
+| pdr  | `.mix/pending/requirements.md`|
+| tko  | `.mix/tasks_outline.md`     |
+| tk   | `.mix/tasks.md`             |
+| pdt  | `.mix/pending/tasks.md`     |
+| rv   | `.mix/review.md`            |
 
 ### Dynamic Path Resolution
 
@@ -75,6 +78,21 @@ When no alias matches, the input is treated as a relative path:
 - **Extension completion**: If no extension is specified, `.md` is automatically appended
 - **Directory creation**: Parent directories are created automatically (e.g., `sdd/rq` creates `.mix/sdd/rq.md`)
 - **Security**: Path traversal attempts (using `..`) are rejected to prevent creating files outside `.mix/`
+
+### Template placeholders (dynamic context)
+
+- Write `{{relative/path.md}}` inside any snippet to inline the referenced file when the snippet is copied.
+- Paths are always resolved relative to the current project root (the directory you run `mix` from) and are validated with the same traversal checks as `mix t`.
+- Missing files (or invalid paths) are replaced with a readable marker such as `[mix missing: .mix/tasks.md (NotFound)]` so you can tell what went wrong.
+- When `mix` runs outside of a project (project root cannot be detected), placeholders stay untouched and copy as literal text.
+
+Example:
+
+```
+Current status: {{.mix/tasks.md}}
+```
+
+Combine this with the `mix t if`, `mix t rp`, or `mix t aif` aliases to keep context documents fresh and automatically inject their latest contents into prompts.
 
 ### Environment overrides
 
