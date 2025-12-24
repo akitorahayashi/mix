@@ -14,9 +14,9 @@ fn user_can_list_copy_and_touch() {
     // 1. List
     ctx.cli().arg("list").assert().success().stdout(predicate::str::contains("wc"));
 
-    // 2. Copy
+    // 2. Command
     let clipboard = ctx.clipboard_file("flow.txt");
-    ctx.cli().args(["c", "wc"]).assert().success();
+    ctx.cli().args(["command", "wc"]).assert().success();
     let clip = fs::read_to_string(clipboard).expect("clipboard file available");
     assert!(clip.contains("/wc"));
 

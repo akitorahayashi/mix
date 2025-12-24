@@ -2,7 +2,7 @@
 
 `mix` is a Rust CLI that unifies two daily workflows:
 
-1. **Snippet copying** – type `mix copy <snippet>` (alias `mix c`) to stream any markdown snippet under
+1. **Snippet command** – type `mix command <snippet>` (alias `mix c`) to stream any markdown snippet under
    `~/.config/mix/commands/` into your clipboard.
 2. **Context Orchestration** – type `mix touch <key>` (alias `mix t`) to create or manage context files in your project.
 
@@ -29,7 +29,7 @@ mix list (alias: ls)
 mix --version
 
 # Copy a snippet into the clipboard (uses pbcopy/wl-copy/xclip/clip automatically)
-mix copy wc (alias: mix c wc)
+mix command wc (alias: mix c wc)
 
 # Create context files (alias: mix t)
 mix touch tk   # Creates .mix/tasks.md

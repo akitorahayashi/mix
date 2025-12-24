@@ -35,7 +35,7 @@ enum Commands {
     },
     /// Copy a snippet to the clipboard
     #[command(visible_alias = "c")]
-    Copy { snippet: String },
+    Command { snippet: String },
 }
 
 fn main() {
@@ -45,7 +45,7 @@ fn main() {
         Some(Commands::List) => handle_list(),
         Some(Commands::Touch { key, paste, force }) => handle_touch(&key, paste, force),
         Some(Commands::Clean { key }) => handle_clean(key),
-        Some(Commands::Copy { snippet }) => handle_copy(&snippet),
+        Some(Commands::Command { snippet }) => handle_command(&snippet),
         None => {
             Cli::command().print_help().ok();
             println!();
@@ -59,7 +59,7 @@ fn main() {
     }
 }
 
-fn handle_copy(name: &str) -> Result<(), AppError> {
+fn handle_command(name: &str) -> Result<(), AppError> {
     let CopyOutcome { key, relative_path, absolute_path } = commands::copy_snippet(name)?;
     println!("✅ Copied '{key}' from {relative_path} -> {}", absolute_path.display());
     Ok(())

@@ -34,7 +34,7 @@ It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies o
 
 - **Run Application**:
     - `mix list`: List all available snippets.
-    - `mix <snippet>`: Copy a specific snippet to the clipboard.
+    - `mix command <snippet>`: Copy a specific snippet to the clipboard.
     - `mix touch <key>` / `mix t <key>`: Create context files in `.mix/` directory.
         - Supports predefined aliases (tk, rq, rv, df, pdt, pdr, wn, er)
         - Supports dynamic paths with auto `.md` extension and directory creation
