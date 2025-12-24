@@ -143,11 +143,7 @@ pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
     // 6. Create file atomically if not exists (or force overwrite)
     let (existed, overwritten) = if force {
         let exists = target_path.exists();
-        OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&target_path)?;
+        OpenOptions::new().write(true).create(true).truncate(true).open(&target_path)?;
         (exists, exists)
     } else {
         match OpenOptions::new().write(true).create_new(true).open(&target_path) {
@@ -157,12 +153,7 @@ pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
         }
     };
 
-    Ok(TouchOutcome {
-        key: key.to_string(),
-        path: target_path,
-        existed,
-        overwritten,
-    })
+    Ok(TouchOutcome { key: key.to_string(), path: target_path, existed, overwritten })
 }
 
 pub fn find_project_root() -> Result<PathBuf, AppError> {

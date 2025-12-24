@@ -76,24 +76,29 @@ fn test_touch_force_overwrites() {
 
 #[test]
 fn test_touch_force_paste_overwrites() {
-    // Note: We cannot easily mock the clipboard in integration tests
-    // without more complex setup or dependency injection.
-    // However, we can verify that the command runs and output is correct
-    // assuming the mocked/stubbed clipboard behavior if present,
-    // or just checking the CLI output logic.
-    //
-    // Since clipboard interaction depends on the environment,
-    // we will rely on unit tests for logic and just check CLI flow here.
-    // But real clipboard interaction might fail in CI/sandbox if not handled.
-    // For now, let's just check the "overwritten" message logic which doesn't
-    // strictly require paste to succeed if clipboard is empty or fails gracefully?
-    // Actually, `clipboard.paste()` returns Result.
-    //
-    // If we can't easily mock clipboard in this test binary, maybe skip paste test here
-    // or assume clipboard is available?
-    //
-    // The previous tests didn't test paste. I will add a test that checks the
-    // force flag logic primarily.
+    let temp = tempdir().unwrap();
+    let tasks_md = temp.path().join(".mix/tasks.md");
+    fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
+    fs::write(&tasks_md, "original content").unwrap();
+
+    let clipboard_content = "new clipboard content";
+    let clipboard_file = temp.path().join("clipboard.txt");
+    fs::write(&clipboard_file, clipboard_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("mix").unwrap();
+
+    cmd.current_dir(&temp)
+        .env("MIX_CLIPBOARD_FILE", &clipboard_file)
+        .arg("t")
+        .arg("tk")
+        .arg("-f")
+        .arg("-p")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("✅ Context file overwritten"));
+
+    let content = fs::read_to_string(&tasks_md).unwrap();
+    assert_eq!(content, clipboard_content);
 }
 
 #[test]
