@@ -80,7 +80,7 @@ fn test_touch_paste_does_not_overwrite_existing_file() {
         .arg("--paste")
         .assert()
         .success()
-        .stdout(predicate::str::contains("✅ Context file found"));
+        .stdout(predicate::str::contains("⚠️ Context file already exists"));
 
     // File should still have original content
     let content = fs::read_to_string(&tasks_file).expect("read tasks file");

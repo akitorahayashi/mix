@@ -28,6 +28,7 @@ pub struct TouchOutcome {
     pub key: String,
     pub path: PathBuf,
     pub existed: bool,
+    pub overwritten: bool,
 }
 
 pub fn clean_context(key: Option<String>) -> Result<CleanOutcome, AppError> {
@@ -59,15 +60,22 @@ pub fn list_snippets() -> Result<Vec<ListEntry>, AppError> {
         .collect())
 }
 
-pub fn touch_context(key: &str, paste: bool) -> Result<TouchOutcome, AppError> {
-    let outcome = touch::touch(key)?;
+pub fn touch_context(key: &str, paste: bool, force: bool) -> Result<TouchOutcome, AppError> {
+    let outcome = touch::touch(key, force)?;
 
-    // Only paste to newly created files
-    if paste && !outcome.existed {
+    // Paste if:
+    // 1. File was just created (!existed)
+    // 2. OR file was overwritten (overwritten)
+    if paste && (!outcome.existed || outcome.overwritten) {
         let clipboard = clipboard_from_env()?;
         let content = clipboard.paste()?;
         std::fs::write(&outcome.path, content)?;
     }
 
-    Ok(TouchOutcome { key: outcome.key, path: outcome.path, existed: outcome.existed })
+    Ok(TouchOutcome {
+        key: outcome.key,
+        path: outcome.path,
+        existed: outcome.existed,
+        overwritten: outcome.overwritten,
+    })
 }

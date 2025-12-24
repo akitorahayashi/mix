@@ -42,6 +42,11 @@ mix t tk --paste   # Creates .mix/tasks.md with clipboard content
 mix t rq -p        # Creates .mix/requirements.md with clipboard content (-p is short form)
 mix t docs/spec -p # Creates .mix/docs/spec.md with clipboard content
 
+# Force overwrite existing files
+mix t tk --force      # Overwrites .mix/tasks.md (empties content)
+mix t tk -f           # Short form
+mix t tk -p -f        # Overwrites .mix/tasks.md with clipboard content
+
 # Clean context files
 mix cl             # Deletes the entire .mix/ directory (alias for clean)
 mix cl tk          # Deletes only .mix/tasks.md
@@ -95,7 +100,9 @@ mix t er -p           # Creates .mix/error.md with clipboard content (short form
 mix t logs/debug.txt -p  # Works with any path
 ```
 
-**Important**: Paste only writes to *newly created* files. If the file already exists, the clipboard content is ignored to prevent accidental overwrites. This safety feature ensures you won't lose existing work.
+**Important**: By default, `mix touch` (and `--paste`) will **not** overwrite existing files. It will display a warning `⚠️ Context file already exists`.
+
+To overwrite an existing file, use the `--force` (or `-f`) flag. This will either truncate the file (make it empty) or overwrite it with clipboard content if `--paste` is also used.
 
 **Common workflow**:
 1. Copy error message or specification from browser

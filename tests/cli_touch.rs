@@ -50,7 +50,85 @@ fn test_touch_existing_file() {
         .arg("tk")
         .assert()
         .success()
-        .stdout(predicate::str::contains("✅ Context file found"));
+        .stdout(predicate::str::contains("⚠️ Context file already exists"));
+}
+
+#[test]
+fn test_touch_force_overwrites() {
+    let temp = tempdir().unwrap();
+    let tasks_md = temp.path().join(".mix/tasks.md");
+    fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
+    fs::write(&tasks_md, "original content").unwrap();
+
+    let mut cmd = Command::cargo_bin("mix").unwrap();
+
+    cmd.current_dir(&temp)
+        .arg("t")
+        .arg("tk")
+        .arg("-f")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("✅ Context file overwritten"));
+
+    let content = fs::read_to_string(&tasks_md).unwrap();
+    assert_eq!(content, "");
+}
+
+#[test]
+fn test_touch_force_paste_overwrites() {
+    let temp = tempdir().unwrap();
+    let tasks_md = temp.path().join(".mix/tasks.md");
+    fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
+    fs::write(&tasks_md, "original content").unwrap();
+
+    let clipboard_content = "new clipboard content";
+    let clipboard_file = temp.path().join("clipboard.txt");
+    fs::write(&clipboard_file, clipboard_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("mix").unwrap();
+
+    cmd.current_dir(&temp)
+        .env("MIX_CLIPBOARD_FILE", &clipboard_file)
+        .arg("t")
+        .arg("tk")
+        .arg("-f")
+        .arg("-p")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("✅ Context file overwritten"));
+
+    let content = fs::read_to_string(&tasks_md).unwrap();
+    assert_eq!(content, clipboard_content);
+}
+
+#[test]
+fn test_touch_paste_without_force_skips() {
+    let temp = tempdir().unwrap();
+    let tasks_md = temp.path().join(".mix/tasks.md");
+    fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
+    fs::write(&tasks_md, "original content").unwrap();
+
+    let mut cmd = Command::cargo_bin("mix").unwrap();
+
+    // Even if paste is requested, it should fail/skip because file exists
+    // and no force flag.
+    // Note: If paste is attempted, it might fail if no clipboard.
+    // But our logic checks existence FIRST.
+    // `if paste && (!outcome.existed || outcome.overwritten)`
+    // Here `outcome.existed` is true, `overwritten` is false.
+    // So paste block is SKIPPED.
+    // So clipboard is NOT accessed. Safe to test!
+
+    cmd.current_dir(&temp)
+        .arg("t")
+        .arg("tk")
+        .arg("-p")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("⚠️ Context file already exists"));
+
+    let content = fs::read_to_string(&tasks_md).unwrap();
+    assert_eq!(content, "original content");
 }
 
 #[test]
@@ -183,7 +261,7 @@ fn test_touch_dynamic_existing_file() {
         .arg("custom")
         .assert()
         .success()
-        .stdout(predicate::str::contains("✅ Context file found"));
+        .stdout(predicate::str::contains("⚠️ Context file already exists"));
 }
 
 #[test]

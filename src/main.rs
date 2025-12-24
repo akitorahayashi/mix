@@ -26,6 +26,9 @@ enum Commands {
         /// Paste content from clipboard into the new file
         #[arg(short = 'p', long = "paste")]
         paste: bool,
+        /// Force overwrite existing files
+        #[arg(short = 'f', long = "force")]
+        force: bool,
     },
     /// Clean context files or directory
     #[command(visible_alias = "cl")]
@@ -40,7 +43,7 @@ fn main() {
 
     let result = match (cli.command, cli.snippet) {
         (Some(Commands::List), _) => handle_list(),
-        (Some(Commands::Touch { key, paste }), _) => handle_touch(&key, paste),
+        (Some(Commands::Touch { key, paste, force }), _) => handle_touch(&key, paste, force),
         (Some(Commands::Clean { key }), _) => handle_clean(key),
         (None, Some(snippet)) => handle_copy(&snippet),
         (None, None) => {
@@ -62,10 +65,17 @@ fn handle_copy(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-fn handle_touch(key: &str, paste: bool) -> Result<(), AppError> {
-    let outcome = commands::touch_context(key, paste)?;
-    let status = if outcome.existed { "found" } else { "created" };
-    println!("✅ Context file {status}: {}", outcome.path.display());
+fn handle_touch(key: &str, paste: bool, force: bool) -> Result<(), AppError> {
+    let outcome = commands::touch_context(key, paste, force)?;
+
+    if outcome.overwritten {
+        println!("✅ Context file overwritten: {}", outcome.path.display());
+    } else if outcome.existed {
+        println!("⚠️ Context file already exists: {}", outcome.path.display());
+    } else {
+        println!("✅ Context file created: {}", outcome.path.display());
+    }
+
     Ok(())
 }
 

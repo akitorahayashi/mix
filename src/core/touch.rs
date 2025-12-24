@@ -29,6 +29,7 @@ pub struct TouchOutcome {
     pub key: String,
     pub path: PathBuf,
     pub existed: bool,
+    pub overwritten: bool,
 }
 
 /// Resolves an input key to a relative path within the `.mix/` directory.
@@ -107,7 +108,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
 
     Ok(())
 }
-pub fn touch(key: &str) -> Result<TouchOutcome, AppError> {
+pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
     let root = find_project_root()?;
     let mix_dir = root.join(".mix");
 
@@ -139,14 +140,20 @@ pub fn touch(key: &str) -> Result<TouchOutcome, AppError> {
         }
     }
 
-    // 6. Create file atomically if not exists
-    let existed = match OpenOptions::new().write(true).create_new(true).open(&target_path) {
-        Ok(_) => false,
-        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => true,
-        Err(e) => return Err(e.into()),
+    // 6. Create file atomically if not exists (or force overwrite)
+    let (existed, overwritten) = if force {
+        let exists = target_path.exists();
+        OpenOptions::new().write(true).create(true).truncate(true).open(&target_path)?;
+        (exists, exists)
+    } else {
+        match OpenOptions::new().write(true).create_new(true).open(&target_path) {
+            Ok(_) => (false, false),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => (true, false),
+            Err(e) => return Err(e.into()),
+        }
     };
 
-    Ok(TouchOutcome { key: key.to_string(), path: target_path, existed })
+    Ok(TouchOutcome { key: key.to_string(), path: target_path, existed, overwritten })
 }
 
 pub fn find_project_root() -> Result<PathBuf, AppError> {
@@ -307,7 +314,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("tk").unwrap();
+        let outcome = touch("tk", false).unwrap();
 
         assert!(dir.path().join(".mix").exists());
         assert!(dir.path().join(".mix/.gitignore").exists());
@@ -324,7 +331,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("pdt").unwrap();
+        let outcome = touch("pdt", false).unwrap();
 
         assert!(dir.path().join(".mix/pending/tasks.md").exists());
         assert!(!outcome.existed);
@@ -336,10 +343,31 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        touch("tk").unwrap();
-        let outcome = touch("tk").unwrap();
+        touch("tk", false).unwrap();
+        let outcome = touch("tk", false).unwrap();
 
         assert!(outcome.existed);
+        assert!(!outcome.overwritten);
+    }
+
+    #[test]
+    #[serial]
+    fn test_touch_force_overwrite() {
+        let dir = tempdir().unwrap();
+        std::env::set_current_dir(&dir).unwrap();
+
+        // Create file with content
+        let path = dir.path().join(".mix/tasks.md");
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "initial content").unwrap();
+
+        // Overwrite
+        let outcome = touch("tk", true).unwrap();
+
+        assert!(outcome.existed);
+        assert!(outcome.overwritten);
+        let content = fs::read_to_string(&path).unwrap();
+        assert_eq!(content, "");
     }
 
     #[test]
@@ -348,7 +376,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("random_name").unwrap();
+        let outcome = touch("random_name", false).unwrap();
 
         assert!(dir.path().join(".mix/random_name.md").exists());
         assert!(!outcome.existed);
@@ -361,7 +389,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("a/b/c").unwrap();
+        let outcome = touch("a/b/c", false).unwrap();
 
         assert!(dir.path().join(".mix/a/b/c.md").exists());
         assert!(dir.path().join(".mix/a/b").is_dir());
@@ -374,7 +402,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("data.json").unwrap();
+        let outcome = touch("data.json", false).unwrap();
 
         assert!(dir.path().join(".mix/data.json").exists());
         assert!(!dir.path().join(".mix/data.json.md").exists());
@@ -387,7 +415,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let result = touch("../hack");
+        let result = touch("../hack", false);
 
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(_)) = result {

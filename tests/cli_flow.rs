@@ -26,5 +26,9 @@ fn user_can_list_copy_and_touch() {
     assert!(tasks_md.exists());
 
     // 4. Touch again (idempotent)
-    ctx.cli().args(["touch", "tk"]).assert().success().stdout(predicate::str::contains("found"));
+    ctx.cli()
+        .args(["touch", "tk"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("already exists"));
 }
