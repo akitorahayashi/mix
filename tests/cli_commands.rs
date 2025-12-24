@@ -40,7 +40,7 @@ fn copy_command_uses_clipboard_override() {
     ctx.install_sample_catalog();
     let clipboard = ctx.clipboard_file("clipboard.txt");
 
-    ctx.cli().arg("wc").assert().success().stdout(predicate::str::contains("Copied 'wc'"));
+    ctx.cli().args(["c", "wc"]).assert().success().stdout(predicate::str::contains("Copied 'wc'"));
 
     let captured = fs::read_to_string(clipboard).expect("clipboard file should exist");
     assert!(captured.contains("/wc"), "clipboard should hold snippet contents");
@@ -55,7 +55,7 @@ fn copy_missing_snippet_fails() {
     let _ = ctx.clipboard_file("clipboard_fail.txt");
 
     ctx.cli()
-        .arg("unknown")
+        .args(["c", "unknown"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("No snippet named"));

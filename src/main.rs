@@ -9,9 +9,6 @@ use mix::error::AppError;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
-
-    /// Snippet name to copy when no subcommand is provided
-    snippet: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -35,21 +32,18 @@ enum Commands {
     },
     /// Copy a snippet to the clipboard
     #[command(visible_alias = "c")]
-    Copy {
-        snippet: String,
-    },
+    Copy { snippet: String },
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    let result = match (cli.command, cli.snippet) {
-        (Some(Commands::List), _) => handle_list(),
-        (Some(Commands::Touch { key, paste }), _) => handle_touch(&key, paste),
-        (Some(Commands::Clean { key }), _) => handle_clean(key),
-        (Some(Commands::Copy { snippet }), _) => handle_copy(&snippet),
-        (None, Some(snippet)) => handle_copy(&snippet),
-        (None, None) => {
+    let result = match cli.command {
+        Some(Commands::List) => handle_list(),
+        Some(Commands::Touch { key, paste }) => handle_touch(&key, paste),
+        Some(Commands::Clean { key }) => handle_clean(key),
+        Some(Commands::Copy { snippet }) => handle_copy(&snippet),
+        None => {
             Cli::command().print_help().ok();
             println!();
             Ok(())

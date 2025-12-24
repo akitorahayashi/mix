@@ -32,12 +32,7 @@ fn copy_alias_c_works() {
     let clipboard = ctx.clipboard_file("clipboard_alias.txt");
 
     // Test `mix c wc`
-    ctx.cli()
-        .arg("c")
-        .arg("wc")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Copied 'wc'"));
+    ctx.cli().arg("c").arg("wc").assert().success().stdout(predicate::str::contains("Copied 'wc'"));
 
     let captured = fs::read_to_string(&clipboard).expect("clipboard file should exist");
     assert!(captured.contains("/wc"), "clipboard should hold snippet contents");
