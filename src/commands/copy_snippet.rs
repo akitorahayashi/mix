@@ -1,5 +1,5 @@
-use crate::core::clipboard::Clipboard;
-use crate::core::touch::{find_project_root, validate_path};
+use crate::commands::clipboard::Clipboard;
+use crate::commands::touch::{find_project_root, validate_path};
 use crate::error::AppError;
 use crate::storage::SnippetStorage;
 use std::borrow::Cow;
@@ -90,7 +90,7 @@ fn render_placeholder(raw_token: &str, project_root: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::test_support::{recording_clipboard, TestSnippetStorage};
+    use crate::commands::test_support::{recording_clipboard, TestSnippetStorage};
     use serial_test::serial;
     use std::env;
     use std::fs;

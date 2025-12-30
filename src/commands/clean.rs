@@ -1,4 +1,4 @@
-use crate::core::touch::{find_project_root, resolve_path, validate_path};
+use crate::commands::touch::{find_project_root, resolve_path, validate_path};
 use crate::error::AppError;
 use std::fs;
 

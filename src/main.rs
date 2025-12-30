@@ -1,5 +1,5 @@
 use clap::{CommandFactory, Parser, Subcommand};
-use mix::commands::{self, CopyOutcome, ListEntry};
+use mix::{CopyOutcome, ListEntry};
 use mix::error::AppError;
 
 #[derive(Parser)]
@@ -60,13 +60,13 @@ fn main() {
 }
 
 fn handle_command(name: &str) -> Result<(), AppError> {
-    let CopyOutcome { key, relative_path, absolute_path } = commands::copy_snippet(name)?;
+    let CopyOutcome { key, relative_path, absolute_path } = mix::copy_snippet(name)?;
     println!("✅ Copied '{key}' from {relative_path} -> {}", absolute_path.display());
     Ok(())
 }
 
 fn handle_touch(key: &str, paste: bool, force: bool) -> Result<(), AppError> {
-    let outcome = commands::touch_context(key, paste, force)?;
+    let outcome = mix::touch_context(key, paste, force)?;
 
     if outcome.overwritten {
         println!("✅ Context file overwritten: {}", outcome.path.display());
@@ -80,13 +80,13 @@ fn handle_touch(key: &str, paste: bool, force: bool) -> Result<(), AppError> {
 }
 
 fn handle_clean(key: Option<String>) -> Result<(), AppError> {
-    let outcome = commands::clean_context(key)?;
+    let outcome = mix::clean_context(key)?;
     println!("✅ {}", outcome.message);
     Ok(())
 }
 
 fn handle_list() -> Result<(), AppError> {
-    let entries = commands::list_snippets()?;
+    let entries = mix::list_snippets()?;
     if entries.is_empty() {
         println!("(no snippets found)");
         return Ok(());
