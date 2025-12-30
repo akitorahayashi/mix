@@ -1,6 +1,6 @@
 use clap::{CommandFactory, Parser, Subcommand};
-use mix::{CopyOutcome, ListEntry};
 use mix::error::AppError;
+use mix::{CopyOutcome, ListEntry};
 
 #[derive(Parser)]
 #[command(name = "mix")]

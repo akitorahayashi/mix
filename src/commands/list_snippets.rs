@@ -2,7 +2,7 @@ use crate::error::AppError;
 use crate::storage::SnippetStorage;
 
 #[derive(Debug, Clone)]
-pub(crate) struct ListEntry {
+pub struct ListEntry {
     pub key: String,
     pub relative_path: String,
     pub title: Option<String>,
