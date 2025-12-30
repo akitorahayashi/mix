@@ -1,4 +1,4 @@
-use crate::core::clipboard::Clipboard;
+use crate::commands::clipboard::Clipboard;
 use crate::error::AppError;
 use crate::storage::SnippetStorage;
 use std::cell::RefCell;

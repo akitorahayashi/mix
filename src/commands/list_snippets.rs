@@ -2,7 +2,7 @@ use crate::error::AppError;
 use crate::storage::SnippetStorage;
 
 #[derive(Debug, Clone)]
-pub(crate) struct ListEntry {
+pub struct ListEntry {
     pub key: String,
     pub relative_path: String,
     pub title: Option<String>,
@@ -29,7 +29,7 @@ pub(crate) fn list(storage: &SnippetStorage) -> Result<Vec<ListEntry>, AppError>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::test_support::TestSnippetStorage;
+    use crate::commands::test_support::TestSnippetStorage;
 
     #[test]
     fn list_merges_metadata_when_available() {

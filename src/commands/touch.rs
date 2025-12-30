@@ -1,3 +1,4 @@
+use crate::commands::clipboard::clipboard_from_env;
 use crate::error::AppError;
 use std::collections::HashMap;
 use std::fs;
@@ -108,7 +109,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
 
     Ok(())
 }
-pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
+pub fn touch(key: &str, force: bool, paste: bool) -> Result<TouchOutcome, AppError> {
     let root = find_project_root()?;
     let mix_dir = root.join(".mix");
 
@@ -152,6 +153,15 @@ pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
             Err(e) => return Err(e.into()),
         }
     };
+
+    // Paste if:
+    // 1. File was just created (!existed)
+    // 2. OR file was overwritten (overwritten)
+    if paste && (!existed || overwritten) {
+        let clipboard = clipboard_from_env()?;
+        let content = clipboard.paste()?;
+        std::fs::write(&target_path, content)?;
+    }
 
     Ok(TouchOutcome { key: key.to_string(), path: target_path, existed, overwritten })
 }
@@ -314,7 +324,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("tk", false).unwrap();
+        let outcome = touch("tk", false, false).unwrap();
 
         assert!(dir.path().join(".mix").exists());
         assert!(dir.path().join(".mix/.gitignore").exists());
@@ -331,7 +341,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("pdt", false).unwrap();
+        let outcome = touch("pdt", false, false).unwrap();
 
         assert!(dir.path().join(".mix/pending/tasks.md").exists());
         assert!(!outcome.existed);
@@ -343,8 +353,8 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        touch("tk", false).unwrap();
-        let outcome = touch("tk", false).unwrap();
+        touch("tk", false, false).unwrap();
+        let outcome = touch("tk", false, false).unwrap();
 
         assert!(outcome.existed);
         assert!(!outcome.overwritten);
@@ -362,7 +372,7 @@ mod tests {
         fs::write(&path, "initial content").unwrap();
 
         // Overwrite
-        let outcome = touch("tk", true).unwrap();
+        let outcome = touch("tk", true, false).unwrap();
 
         assert!(outcome.existed);
         assert!(outcome.overwritten);
@@ -376,7 +386,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("random_name", false).unwrap();
+        let outcome = touch("random_name", false, false).unwrap();
 
         assert!(dir.path().join(".mix/random_name.md").exists());
         assert!(!outcome.existed);
@@ -389,7 +399,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("a/b/c", false).unwrap();
+        let outcome = touch("a/b/c", false, false).unwrap();
 
         assert!(dir.path().join(".mix/a/b/c.md").exists());
         assert!(dir.path().join(".mix/a/b").is_dir());
@@ -402,7 +412,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let outcome = touch("data.json", false).unwrap();
+        let outcome = touch("data.json", false, false).unwrap();
 
         assert!(dir.path().join(".mix/data.json").exists());
         assert!(!dir.path().join(".mix/data.json.md").exists());
@@ -415,7 +425,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let result = touch("../hack", false);
+        let result = touch("../hack", false, false);
 
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(_)) = result {

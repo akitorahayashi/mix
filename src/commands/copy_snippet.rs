@@ -1,5 +1,5 @@
-use crate::core::clipboard::Clipboard;
-use crate::core::touch::{find_project_root, validate_path};
+use crate::commands::clipboard::Clipboard;
+use crate::commands::touch::{find_project_root, validate_path};
 use crate::error::AppError;
 use crate::storage::SnippetStorage;
 use std::borrow::Cow;
@@ -11,7 +11,7 @@ pub(crate) struct CopySnippet<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CopyOutput {
+pub struct CopyOutcome {
     pub key: String,
     pub relative_path: String,
     pub absolute_path: std::path::PathBuf,
@@ -22,14 +22,14 @@ impl CopySnippet<'_> {
         &self,
         storage: &SnippetStorage,
         clipboard: &dyn Clipboard,
-    ) -> Result<CopyOutput, AppError> {
+    ) -> Result<CopyOutcome, AppError> {
         let snippet = storage.resolve_snippet(self.query)?;
         let content = fs::read_to_string(&snippet.absolute_path)?;
         let project_root = find_project_root().ok();
         let expanded = expand_placeholders(&content, project_root.as_deref());
         clipboard.copy(expanded.as_ref())?;
 
-        Ok(CopyOutput {
+        Ok(CopyOutcome {
             key: snippet.key,
             relative_path: snippet.relative_path,
             absolute_path: snippet.absolute_path,
@@ -90,7 +90,7 @@ fn render_placeholder(raw_token: &str, project_root: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::test_support::{recording_clipboard, TestSnippetStorage};
+    use crate::commands::test_support::{recording_clipboard, TestSnippetStorage};
     use serial_test::serial;
     use std::env;
     use std::fs;
