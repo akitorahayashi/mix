@@ -29,8 +29,8 @@ fn clean_full_directory() {
         .assert()
         .success();
 
-    assert!(dir.path().join("mix").exists());
-    assert!(dir.path().join("mix/tasks.md").exists());
+    assert!(dir.path().join("mx").exists());
+    assert!(dir.path().join("mx/tasks.md").exists());
 
     // Clean all
     Command::cargo_bin("mx")
@@ -39,9 +39,9 @@ fn clean_full_directory() {
         .arg("clean")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Removed mix directory"));
+        .stdout(predicate::str::contains("Removed mx directory"));
 
-    assert!(!dir.path().join("mix").exists());
+    assert!(!dir.path().join("mx").exists());
 }
 
 #[test]
@@ -76,8 +76,8 @@ fn clean_specific_file() {
         .success()
         .stdout(predicate::str::contains("Removed"));
 
-    assert!(!dir.path().join("mix/tasks.md").exists());
-    assert!(dir.path().join("mix/requirements.md").exists());
+    assert!(!dir.path().join("mx/tasks.md").exists());
+    assert!(dir.path().join("mx/requirements.md").exists());
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn clean_nested_and_dynamic() {
         .assert()
         .success();
 
-    assert!(dir.path().join("mix/tasks/tasks1.md").exists());
+    assert!(dir.path().join("mx/tasks/tasks1.md").exists());
 
     // Clean tk1
     Command::cargo_bin("mx")
@@ -105,9 +105,9 @@ fn clean_nested_and_dynamic() {
         .assert()
         .success();
 
-    assert!(!dir.path().join("mix/tasks/tasks1.md").exists());
+    assert!(!dir.path().join("mx/tasks/tasks1.md").exists());
     // The parent 'tasks' directory should also be removed if empty
-    assert!(!dir.path().join("mix/tasks").exists());
+    assert!(!dir.path().join("mx/tasks").exists());
 }
 
 #[test]
@@ -115,8 +115,8 @@ fn clean_nested_and_dynamic() {
 fn clean_nonexistent_file() {
     let dir = tempdir().unwrap();
 
-    // Ensure mix exists
-    fs::create_dir(dir.path().join("mix")).unwrap();
+    // Ensure mx exists
+    fs::create_dir(dir.path().join("mx")).unwrap();
 
     Command::cargo_bin("mx")
         .unwrap()

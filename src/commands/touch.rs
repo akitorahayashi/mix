@@ -33,7 +33,7 @@ pub struct TouchOutcome {
     pub overwritten: bool,
 }
 
-/// Resolves an input key to a relative path within the `.mix/` directory.
+/// Resolves an input key to a relative path within the `mx/` directory.
 ///
 /// Resolution priority:
 /// 1. Check if key matches a predefined alias
@@ -82,7 +82,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
     // rejection for the most common traversal attempts.
     if key.contains("..") {
         return Err(AppError::path_traversal(
-            "Invalid path. Cannot create files outside of mix directory.",
+            "Invalid path. Cannot create files outside of mx directory.",
         ));
     }
 
@@ -101,7 +101,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
             // - `Prefix` (`C:`): Blocks Windows absolute paths.
             _ => {
                 return Err(AppError::path_traversal(
-                    "Invalid path. Cannot create files outside of mix directory.",
+                    "Invalid path. Cannot create files outside of mx directory.",
                 ));
             }
         }
@@ -111,15 +111,15 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
 }
 pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
     let root = find_project_root()?;
-    let mix_dir = root.join("mix");
+    let mx_dir = root.join("mx");
 
-    // 1. Create mix directory
-    if !mix_dir.exists() {
-        fs::create_dir(&mix_dir)?;
+    // 1. Create mx directory
+    if !mx_dir.exists() {
+        fs::create_dir(&mx_dir)?;
     }
 
     // 2. Create .gitignore atomically
-    let gitignore = mix_dir.join(".gitignore");
+    let gitignore = mx_dir.join(".gitignore");
     let gitignore_exists = gitignore.exists();
     if !gitignore_exists {
         let mut file = OpenOptions::new().write(true).create_new(true).open(&gitignore)?;
@@ -132,7 +132,7 @@ pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
     // 4. Validate path for security (no traversal or absolute paths)
     validate_path(key, &relative_path)?;
 
-    let target_path = mix_dir.join(&relative_path);
+    let target_path = mx_dir.join(&relative_path);
 
     // 5. Ensure parent directory exists
     if let Some(parent) = target_path.parent() {
@@ -170,7 +170,7 @@ pub fn find_project_root() -> Result<PathBuf, AppError> {
     // For now, assume current directory is root or we look for .git
     // But simplest is to use current directory.
     // If we want to be robust, we can look for .git up the tree.
-    // Given the request "Creates .mix/ in the project root", implies CWD usually.
+    // Given the request "Creates mx/ in the project root", implies CWD usually.
     std::env::current_dir().map_err(AppError::Io)
 }
 
@@ -315,7 +315,7 @@ mod tests {
         let result = validate_path("../hack", &resolved);
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(msg)) = result {
-            assert!(msg.contains("outside of mix"));
+            assert!(msg.contains("outside of mx"));
         } else {
             panic!("Expected PathTraversal error");
         }
@@ -332,19 +332,19 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_touch_creates_mix_and_gitignore() {
+    fn test_touch_creates_mx_and_gitignore() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
         setup_clipboard(dir.path(), "test content");
 
         let outcome = touch("tk", false).unwrap();
 
-        assert!(dir.path().join("mix").exists());
-        assert!(dir.path().join("mix/.gitignore").exists());
-        let gitignore_content = fs::read_to_string(dir.path().join("mix/.gitignore")).unwrap();
+        assert!(dir.path().join("mx").exists());
+        assert!(dir.path().join("mx/.gitignore").exists());
+        let gitignore_content = fs::read_to_string(dir.path().join("mx/.gitignore")).unwrap();
         assert_eq!(gitignore_content.trim(), "*");
         assert_eq!(outcome.key, "tk");
-        assert!(outcome.path.ends_with("mix/tasks.md"));
+        assert!(outcome.path.ends_with("mx/tasks.md"));
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -359,7 +359,7 @@ mod tests {
 
         let outcome = touch("pdt", false).unwrap();
 
-        assert!(dir.path().join("mix/pending/tasks.md").exists());
+        assert!(dir.path().join("mx/pending/tasks.md").exists());
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -390,7 +390,7 @@ mod tests {
         setup_clipboard(dir.path(), clipboard_content);
 
         // Create file with content
-        let path = dir.path().join("mix/tasks.md");
+        let path = dir.path().join("mx/tasks.md");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, "initial content").unwrap();
 
@@ -414,7 +414,7 @@ mod tests {
 
         let outcome = touch("random_name", false).unwrap();
 
-        assert!(dir.path().join("mix/random_name.md").exists());
+        assert!(dir.path().join("mx/random_name.md").exists());
         assert!(!outcome.existed);
         assert!(outcome.path.ends_with("random_name.md"));
 
@@ -430,8 +430,8 @@ mod tests {
 
         let outcome = touch("a/b/c", false).unwrap();
 
-        assert!(dir.path().join("mix/a/b/c.md").exists());
-        assert!(dir.path().join("mix/a/b").is_dir());
+        assert!(dir.path().join("mx/a/b/c.md").exists());
+        assert!(dir.path().join("mx/a/b").is_dir());
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -446,8 +446,8 @@ mod tests {
 
         let outcome = touch("data.json", false).unwrap();
 
-        assert!(dir.path().join("mix/data.json").exists());
-        assert!(!dir.path().join("mix/data.json.md").exists());
+        assert!(dir.path().join("mx/data.json").exists());
+        assert!(!dir.path().join("mx/data.json.md").exists());
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -467,7 +467,7 @@ mod tests {
         } else {
             panic!("Expected PathTraversal error");
         }
-        // Ensure no file was created outside mix
+        // Ensure no file was created outside mx
         assert!(!dir.path().join("hack.md").exists());
     }
 }

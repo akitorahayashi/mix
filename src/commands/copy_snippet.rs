@@ -77,13 +77,13 @@ fn render_placeholder(raw_token: &str, project_root: &Path) -> String {
     }
 
     if let Err(err) = validate_path(trimmed, Path::new(trimmed)) {
-        return format!("[mix error: {}]", err);
+        return format!("[mx error: {}]", err);
     }
 
     let absolute = project_root.join(trimmed);
     match fs::read_to_string(&absolute) {
         Ok(contents) => contents,
-        Err(err) => format!("[mix missing: {trimmed} ({})]", err.kind()),
+        Err(err) => format!("[mx missing: {trimmed} ({})]", err.kind()),
     }
 }
 
@@ -134,13 +134,13 @@ mod tests {
     #[serial]
     fn copy_snippet_expands_placeholders_into_clipboard() {
         let storage = TestSnippetStorage::new();
-        storage.write_snippet("commands/w/wc.md", "Section:\n{{.mix/info.md}}\nDone");
+        storage.write_snippet("commands/w/wc.md", "Section:\n{{mx/info.md}}\nDone");
         let clipboard = recording_clipboard();
 
         let project_root = tempdir().expect("temp project root");
         let _guard = DirGuard::set(project_root.path());
-        fs::create_dir_all(project_root.path().join(".mix")).expect("create .mix");
-        fs::write(project_root.path().join(".mix/info.md"), "dynamic info").expect("write info");
+        fs::create_dir_all(project_root.path().join("mx")).expect("create mx");
+        fs::write(project_root.path().join("mx/info.md"), "dynamic info").expect("write info");
 
         let result = CopySnippet { query: "wc" }
             .execute(&storage.storage, clipboard.as_ref())
@@ -166,10 +166,10 @@ mod tests {
     #[test]
     fn expand_placeholders_inserts_file_contents() {
         let root = tempdir().expect("temp root");
-        fs::create_dir_all(root.path().join(".mix")).expect("create mix dir");
-        fs::write(root.path().join(".mix/tasks.md"), "todo list").expect("write tasks");
+        fs::create_dir_all(root.path().join("mx")).expect("create mx dir");
+        fs::write(root.path().join("mx/tasks.md"), "todo list").expect("write tasks");
 
-        let source = "Next:\n{{.mix/tasks.md}}";
+        let source = "Next:\n{{mx/tasks.md}}";
         let expanded = expand_placeholders(source, Some(root.path()));
 
         assert_eq!(expanded, "Next:\ntodo list");
@@ -178,9 +178,9 @@ mod tests {
     #[test]
     fn expand_placeholders_handles_missing_files() {
         let root = tempdir().expect("temp root");
-        let expanded = expand_placeholders("Missing: {{.mix/none.md}}", Some(root.path()));
+        let expanded = expand_placeholders("Missing: {{mx/none.md}}", Some(root.path()));
 
-        assert!(expanded.contains("[mix missing: .mix/none.md"));
+        assert!(expanded.contains("[mx missing: mx/none.md"));
     }
 
     #[test]
@@ -188,12 +188,12 @@ mod tests {
         let root = tempdir().expect("temp root");
         let expanded = expand_placeholders("{{../secret}}", Some(root.path()));
 
-        assert!(expanded.contains("[mix error:"));
+        assert!(expanded.contains("[mx error:"));
     }
 
     #[test]
     fn expand_placeholders_skips_when_no_root() {
-        let expanded = expand_placeholders("{{.mix/tasks.md}}", None);
-        assert_eq!(expanded, "{{.mix/tasks.md}}");
+        let expanded = expand_placeholders("{{mx/tasks.md}}", None);
+        assert_eq!(expanded, "{{mx/tasks.md}}");
     }
 }

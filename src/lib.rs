@@ -1,4 +1,4 @@
-//! Library entry point exposing the mix CLI command handlers.
+//! Library entry point exposing the mx CLI command handlers.
 
 pub mod error;
 

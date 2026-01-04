@@ -1,4 +1,4 @@
-//! Shared testing utilities for the mix CLI.
+//! Shared testing utilities for the mx CLI.
 
 use assert_cmd::Command;
 use std::cell::RefCell;

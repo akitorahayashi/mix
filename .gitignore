@@ -1,4 +1,4 @@
 /target
 .tmp/*
 .claude/settings.local.json
-.mix/*
+mx/*

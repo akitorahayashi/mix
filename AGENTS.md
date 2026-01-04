@@ -35,10 +35,10 @@ It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies o
 - **Run Application**:
     - `mx list`: List all available snippets.
     - `mx command <snippet>`: Copy a specific snippet to the clipboard.
-    - `mx touch <key>` / `mx t <key>`: Create context files in `mix/` directory with clipboard content.
+    - `mx touch <key>` / `mx t <key>`: Create context files in `mx/` directory with clipboard content.
         - Supports predefined aliases (tk, rq, rv, df, pdt, pdr, wn, er)
         - Supports dynamic paths with auto `.md` extension and directory creation
-        - Example: `mx t docs/spec` creates `mix/docs/spec.md` with clipboard content
+        - Example: `mx t docs/spec` creates `mx/docs/spec.md` with clipboard content
 - **Linting**:
     - `cargo fmt --check`: Check code formatting.
     - `cargo clippy --all-targets --all-features -- -D warnings`: Run the linter and check for warnings.

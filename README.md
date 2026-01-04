@@ -32,56 +32,56 @@ mx --version
 mx command wc (alias: mx c wc)
 
 # Create context files with clipboard content (alias: mx t)
-mx touch tk   # Creates mix/tasks.md with clipboard content
-mx t rq       # Creates mix/requirements.md with clipboard content
-mx t pdt      # Creates mix/pending/tasks.md with clipboard content
-mx t tk1      # Creates mix/tasks/tasks1.md (dynamic numbered alias)
+mx touch tk   # Creates mx/tasks.md with clipboard content
+mx t rq       # Creates mx/requirements.md with clipboard content
+mx t pdt      # Creates mx/pending/tasks.md with clipboard content
+mx t tk1      # Creates mx/tasks/tasks1.md (dynamic numbered alias)
 
 # Force overwrite existing files
-mx t tk --force      # Overwrites mix/tasks.md with clipboard content
+mx t tk --force      # Overwrites mx/tasks.md with clipboard content
 mx t tk -f           # Short form
 
 # Clean context files
-mx cl             # Deletes the entire mix/ directory (alias for clean)
-mx cl tk          # Deletes only mix/tasks.md
-mx cl tk1         # Deletes only mix/tasks/tasks1.md
+mx cl             # Deletes the entire mx/ directory (alias for clean)
+mx cl tk          # Deletes only mx/tasks.md
+mx cl tk1         # Deletes only mx/tasks/tasks1.md
 
 # Dynamic path support
-mx t myfile          # Creates mix/myfile.md (auto-appends .md)
-mx t docs/spec       # Creates mix/docs/spec.md (auto-creates directories)
-mx t config.yaml     # Creates mix/config.yaml (preserves extension)
+mx t myfile          # Creates mx/myfile.md (auto-appends .md)
+mx t docs/spec       # Creates mx/docs/spec.md (auto-creates directories)
+mx t config.yaml     # Creates mx/config.yaml (preserves extension)
 ```
 
 ### Context Management Keys (Aliases)
 
 | Key  | Path                        |
 |------|-----------------------------|
-| df   | `mix/diff.md`              |
-| wn   | `mix/warnings.md`          |
-| is   | `mix/issue.md`             |
-| er   | `mix/error.md`             |
-| rp   | `mix/report.md`            |
-| if   | `mix/info.md`              |
-| aif  | `mix/additional_info.md`   |
-| rq   | `mix/requirements.md`      |
-| pdr  | `mix/pending/requirements.md`|
-| tko  | `mix/tasks_outline.md`     |
-| tk   | `mix/tasks.md`             |
-| pdt  | `mix/pending/tasks.md`     |
-| rv   | `mix/review.md`            |
+| df   | `mx/diff.md`              |
+| wn   | `mx/warnings.md`          |
+| is   | `mx/issue.md`             |
+| er   | `mx/error.md`             |
+| rp   | `mx/report.md`            |
+| if   | `mx/info.md`              |
+| aif  | `mx/additional_info.md`   |
+| rq   | `mx/requirements.md`      |
+| pdr  | `mx/pending/requirements.md`|
+| tko  | `mx/tasks_outline.md`     |
+| tk   | `mx/tasks.md`             |
+| pdt  | `mx/pending/tasks.md`     |
+| rv   | `mx/review.md`            |
 
 ### Dynamic Path Resolution
 
 - **Pending Prefix**: `pd-` prefix places the file under `pending/`.
-    - `mx t pd-tk` -> `mix/pending/tasks.md`
-    - `mx t pd-feature/spec` -> `mix/pending/feature/spec.md`
+    - `mx t pd-tk` -> `mx/pending/tasks.md`
+    - `mx t pd-feature/spec` -> `mx/pending/feature/spec.md`
 - **Numbered Aliases**: `tk` followed by a number (e.g., `tk1`, `tk2`) maps to `tasks/tasks{N}.md`.
 
 When no alias matches, the input is treated as a relative path:
 
 - **Extension completion**: If no extension is specified, `.md` is automatically appended
-- **Directory creation**: Parent directories are created automatically (e.g., `sdd/rq` creates `mix/sdd/rq.md`)
-- **Security**: Path traversal attempts (using `..`) are rejected to prevent creating files outside `mix/`
+- **Directory creation**: Parent directories are created automatically (e.g., `sdd/rq` creates `mx/sdd/rq.md`)
+- **Security**: Path traversal attempts (using `..`) are rejected to prevent creating files outside `mx/`
 
 ### Default Clipboard Paste Behavior
 
@@ -93,20 +93,20 @@ To overwrite an existing file, use the `--force` (or `-f`) flag. This will overw
 
 **Common workflow**:
 1. Copy error message or specification from browser
-2. Run `mx t er` to save it as `mix/error.md`
-3. Reference it in your work or use template placeholders like `{{mix/error.md}}`
+2. Run `mx t er` to save it as `mx/error.md`
+3. Reference it in your work or use template placeholders like `{{mx/error.md}}`
 
 ### Template placeholders (dynamic context)
 
 - Write `{{relative/path.md}}` inside any snippet to inline the referenced file when the snippet is copied.
 - Paths are always resolved relative to the current project root (the directory you run `mx` from) and are validated with the same traversal checks as `mx t`.
-- Missing files (or invalid paths) are replaced with a readable marker such as `[mx missing: mix/tasks.md (NotFound)]` so you can tell what went wrong.
+- Missing files (or invalid paths) are replaced with a readable marker such as `[mx missing: mx/tasks.md (NotFound)]` so you can tell what went wrong.
 - When `mx` runs outside of a project (project root cannot be detected), placeholders stay untouched and copy as literal text.
 
 Example:
 
 ```
-Current status: {{mix/tasks.md}}
+Current status: {{mx/tasks.md}}
 ```
 
 Combine this with the `mx t if`, `mx t rp`, or `mx t aif` aliases to keep context documents fresh and automatically inject their latest contents into prompts.
@@ -130,6 +130,6 @@ RUST_TEST_THREADS=1 cargo test --all-targets --all-features
 The workspace follows the original template's testing culture:
 
 - **Unit tests** live next to their modules (clipboard abstraction, snippet storage, touch).
-- **Integration crates** under `tests/` exercise both the CLI (`cli_commands.rs`, `cli_flow.rs`, `cli_touch.rs`) and the
-  public library API (`commands_api.rs`). Shared helpers in `tests/common/` seed snippet catalogs inside a
+- **Test support** (`src/commands/test_support.rs`) provides helpers like in-memory clipboard stubs.
+- **Integration tests** under `tests/commands/` exercise each CLI command in a separate file (e.g., `copy.rs`, `touch.rs`). Shared helpers in `tests/common/` seed snippet catalogs inside a
   temporary HOME and expose utilities for overriding clipboard/destination paths.
