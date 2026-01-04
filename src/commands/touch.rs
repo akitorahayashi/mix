@@ -82,7 +82,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
     // rejection for the most common traversal attempts.
     if key.contains("..") {
         return Err(AppError::path_traversal(
-            "Invalid path. Cannot create files outside of .mix directory.",
+            "Invalid path. Cannot create files outside of mix directory.",
         ));
     }
 
@@ -101,7 +101,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
             // - `Prefix` (`C:`): Blocks Windows absolute paths.
             _ => {
                 return Err(AppError::path_traversal(
-                    "Invalid path. Cannot create files outside of .mix directory.",
+                    "Invalid path. Cannot create files outside of mix directory.",
                 ));
             }
         }
@@ -109,11 +109,11 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
 
     Ok(())
 }
-pub fn touch(key: &str, force: bool, paste: bool) -> Result<TouchOutcome, AppError> {
+pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
     let root = find_project_root()?;
-    let mix_dir = root.join(".mix");
+    let mix_dir = root.join("mix");
 
-    // 1. Create .mix directory
+    // 1. Create mix directory
     if !mix_dir.exists() {
         fs::create_dir(&mix_dir)?;
     }
@@ -154,10 +154,10 @@ pub fn touch(key: &str, force: bool, paste: bool) -> Result<TouchOutcome, AppErr
         }
     };
 
-    // Paste if:
+    // Always paste clipboard content when:
     // 1. File was just created (!existed)
     // 2. OR file was overwritten (overwritten)
-    if paste && (!existed || overwritten) {
+    if !existed || overwritten {
         let clipboard = clipboard_from_env()?;
         let content = clipboard.paste()?;
         std::fs::write(&target_path, content)?;
@@ -179,6 +179,18 @@ mod tests {
     use super::*;
     use serial_test::serial;
     use tempfile::tempdir;
+
+    /// Helper to setup clipboard file for tests
+    fn setup_clipboard(dir: &std::path::Path, content: &str) -> std::path::PathBuf {
+        let clipboard_file = dir.join("clipboard.txt");
+        fs::write(&clipboard_file, content).unwrap();
+        std::env::set_var("MX_CLIPBOARD_FILE", &clipboard_file);
+        clipboard_file
+    }
+
+    fn cleanup_clipboard_env() {
+        std::env::remove_var("MX_CLIPBOARD_FILE");
+    }
 
     // === resolve_path tests ===
 
@@ -303,7 +315,7 @@ mod tests {
         let result = validate_path("../hack", &resolved);
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(msg)) = result {
-            assert!(msg.contains("outside of .mix"));
+            assert!(msg.contains("outside of mix"));
         } else {
             panic!("Expected PathTraversal error");
         }
@@ -323,16 +335,19 @@ mod tests {
     fn test_touch_creates_mix_and_gitignore() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        setup_clipboard(dir.path(), "test content");
 
-        let outcome = touch("tk", false, false).unwrap();
+        let outcome = touch("tk", false).unwrap();
 
-        assert!(dir.path().join(".mix").exists());
-        assert!(dir.path().join(".mix/.gitignore").exists());
-        let gitignore_content = fs::read_to_string(dir.path().join(".mix/.gitignore")).unwrap();
+        assert!(dir.path().join("mix").exists());
+        assert!(dir.path().join("mix/.gitignore").exists());
+        let gitignore_content = fs::read_to_string(dir.path().join("mix/.gitignore")).unwrap();
         assert_eq!(gitignore_content.trim(), "*");
         assert_eq!(outcome.key, "tk");
-        assert!(outcome.path.ends_with(".mix/tasks.md"));
+        assert!(outcome.path.ends_with("mix/tasks.md"));
         assert!(!outcome.existed);
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -340,11 +355,14 @@ mod tests {
     fn test_touch_nested_file() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        setup_clipboard(dir.path(), "nested content");
 
-        let outcome = touch("pdt", false, false).unwrap();
+        let outcome = touch("pdt", false).unwrap();
 
-        assert!(dir.path().join(".mix/pending/tasks.md").exists());
+        assert!(dir.path().join("mix/pending/tasks.md").exists());
         assert!(!outcome.existed);
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -352,12 +370,15 @@ mod tests {
     fn test_touch_idempotency() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        setup_clipboard(dir.path(), "test content");
 
-        touch("tk", false, false).unwrap();
-        let outcome = touch("tk", false, false).unwrap();
+        touch("tk", false).unwrap();
+        let outcome = touch("tk", false).unwrap();
 
         assert!(outcome.existed);
         assert!(!outcome.overwritten);
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -365,19 +386,23 @@ mod tests {
     fn test_touch_force_overwrite() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        let clipboard_content = "new clipboard content";
+        setup_clipboard(dir.path(), clipboard_content);
 
         // Create file with content
-        let path = dir.path().join(".mix/tasks.md");
+        let path = dir.path().join("mix/tasks.md");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, "initial content").unwrap();
 
         // Overwrite
-        let outcome = touch("tk", true, false).unwrap();
+        let outcome = touch("tk", true).unwrap();
 
         assert!(outcome.existed);
         assert!(outcome.overwritten);
         let content = fs::read_to_string(&path).unwrap();
-        assert_eq!(content, "");
+        assert_eq!(content, clipboard_content);
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -385,12 +410,15 @@ mod tests {
     fn test_touch_dynamic_creates_file() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        setup_clipboard(dir.path(), "dynamic content");
 
-        let outcome = touch("random_name", false, false).unwrap();
+        let outcome = touch("random_name", false).unwrap();
 
-        assert!(dir.path().join(".mix/random_name.md").exists());
+        assert!(dir.path().join("mix/random_name.md").exists());
         assert!(!outcome.existed);
         assert!(outcome.path.ends_with("random_name.md"));
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -398,12 +426,15 @@ mod tests {
     fn test_touch_dynamic_nested_creates_directories() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        setup_clipboard(dir.path(), "nested content");
 
-        let outcome = touch("a/b/c", false, false).unwrap();
+        let outcome = touch("a/b/c", false).unwrap();
 
-        assert!(dir.path().join(".mix/a/b/c.md").exists());
-        assert!(dir.path().join(".mix/a/b").is_dir());
+        assert!(dir.path().join("mix/a/b/c.md").exists());
+        assert!(dir.path().join("mix/a/b").is_dir());
         assert!(!outcome.existed);
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -411,12 +442,15 @@ mod tests {
     fn test_touch_with_extension_preserves() {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
+        setup_clipboard(dir.path(), "{}");
 
-        let outcome = touch("data.json", false, false).unwrap();
+        let outcome = touch("data.json", false).unwrap();
 
-        assert!(dir.path().join(".mix/data.json").exists());
-        assert!(!dir.path().join(".mix/data.json.md").exists());
+        assert!(dir.path().join("mix/data.json").exists());
+        assert!(!dir.path().join("mix/data.json.md").exists());
         assert!(!outcome.existed);
+
+        cleanup_clipboard_env();
     }
 
     #[test]
@@ -425,7 +459,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
 
-        let result = touch("../hack", false, false);
+        let result = touch("../hack", false);
 
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(_)) = result {
@@ -433,7 +467,7 @@ mod tests {
         } else {
             panic!("Expected PathTraversal error");
         }
-        // Ensure no file was created outside .mix
+        // Ensure no file was created outside mix
         assert!(!dir.path().join("hack.md").exists());
     }
 }

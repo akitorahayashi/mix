@@ -1,14 +1,14 @@
 # Development Overview
 
-This document provides a comprehensive overview of the `mix` project, including its architecture, coding standards, and key development tasks.
+This document provides a comprehensive overview of the `mx` project, including its architecture, coding standards, and key development tasks.
 
 ## Project Summary
 
-`mix` is a Rust CLI tool designed to streamline two developer workflows:
+`mx` is a Rust CLI tool designed to streamline two developer workflows:
 1.  Quickly copying predefined code snippets to the clipboard.
-2.  Managing context files in project directories with flexible path resolution and automatic directory creation via the `mix touch` command.
+2.  Managing context files in project directories with flexible path resolution, automatic directory creation, and clipboard paste via the `mx touch` command.
 
-It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies on a local directory (`~/.config/mix/`) to store markdown snippets and a central `config.yml` for metadata.
+It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies on a local directory (`~/.config/mx/`) to store markdown snippets and a central `config.yml` for metadata.
 
 ## Directory Structure
 
@@ -33,12 +33,12 @@ It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies o
 ## Key Commands
 
 - **Run Application**:
-    - `mix list`: List all available snippets.
-    - `mix command <snippet>`: Copy a specific snippet to the clipboard.
-    - `mix touch <key>` / `mix t <key>`: Create context files in `.mix/` directory.
+    - `mx list`: List all available snippets.
+    - `mx command <snippet>`: Copy a specific snippet to the clipboard.
+    - `mx touch <key>` / `mx t <key>`: Create context files in `mix/` directory with clipboard content.
         - Supports predefined aliases (tk, rq, rv, df, pdt, pdr, wn, er)
         - Supports dynamic paths with auto `.md` extension and directory creation
-        - Example: `mix t docs/spec` creates `.mix/docs/spec.md`
+        - Example: `mx t docs/spec` creates `mix/docs/spec.md` with clipboard content
 - **Linting**:
     - `cargo fmt --check`: Check code formatting.
     - `cargo clippy --all-targets --all-features -- -D warnings`: Run the linter and check for warnings.

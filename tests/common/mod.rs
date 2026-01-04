@@ -40,11 +40,11 @@ impl TestContext {
     }
 
     pub fn commands_root(&self) -> PathBuf {
-        self.home().join(".config").join("mix").join("commands")
+        self.home().join(".config").join("mx").join("commands")
     }
 
     pub fn config_path(&self) -> PathBuf {
-        self.home().join(".config").join("mix").join("config.yml")
+        self.home().join(".config").join("mx").join("config.yml")
     }
 
     pub fn cli(&self) -> Command {
@@ -52,7 +52,7 @@ impl TestContext {
     }
 
     pub fn cli_in<P: AsRef<Path>>(&self, dir: P) -> Command {
-        let mut cmd = Command::cargo_bin("mix").expect("Failed to locate mix binary");
+        let mut cmd = Command::cargo_bin("mx").expect("Failed to locate mx binary");
         cmd.current_dir(dir.as_ref()).env("HOME", self.home());
         cmd
     }
@@ -95,7 +95,7 @@ commands:
 
     pub fn clipboard_file(&self, name: &str) -> PathBuf {
         let file = self.work_dir().join(name);
-        self.set_env("MIX_CLIPBOARD_FILE", file.to_string_lossy());
+        self.set_env("MX_CLIPBOARD_FILE", file.to_string_lossy());
         file
     }
 

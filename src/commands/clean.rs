@@ -8,20 +8,20 @@ pub struct CleanOutcome {
 
 pub fn clean(key: Option<String>) -> Result<CleanOutcome, AppError> {
     let root = find_project_root()?;
-    let mix_dir = root.join(".mix");
+    let mix_dir = root.join("mix");
 
     match key {
         None => {
-            // mix clean (Delete .mix root)
+            // mx clean (Delete mix root)
             if mix_dir.exists() {
                 fs::remove_dir_all(&mix_dir)?;
-                Ok(CleanOutcome { message: "Removed .mix directory".to_string() })
+                Ok(CleanOutcome { message: "Removed mix directory".to_string() })
             } else {
-                Ok(CleanOutcome { message: ".mix directory not found".to_string() })
+                Ok(CleanOutcome { message: "mix directory not found".to_string() })
             }
         }
         Some(k) => {
-            // mix clean tk (Delete specific file)
+            // mx clean tk (Delete specific file)
             let relative_path = resolve_path(&k);
 
             // Validate path for security (no traversal or absolute paths)

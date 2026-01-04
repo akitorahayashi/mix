@@ -1,11 +1,11 @@
 use clap::{CommandFactory, Parser, Subcommand};
-use mix::error::AppError;
-use mix::{CopyOutcome, ListEntry};
+use mx::error::AppError;
+use mx::{CopyOutcome, ListEntry};
 
 #[derive(Parser)]
-#[command(name = "mix")]
+#[command(name = "mx")]
 #[command(version)]
-#[command(about = "Unified CLI for mix snippets and slash command generation")]
+#[command(about = "Unified CLI for mx snippets and slash command generation")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -20,9 +20,6 @@ enum Commands {
     #[command(visible_alias = "t")]
     Touch {
         key: String,
-        /// Paste content from clipboard into the new file
-        #[arg(short = 'p', long = "paste")]
-        paste: bool,
         /// Force overwrite existing files
         #[arg(short = 'f', long = "force")]
         force: bool,
@@ -43,7 +40,7 @@ fn main() {
 
     let result = match cli.command {
         Some(Commands::List) => handle_list(),
-        Some(Commands::Touch { key, paste, force }) => handle_touch(&key, paste, force),
+        Some(Commands::Touch { key, force }) => handle_touch(&key, force),
         Some(Commands::Clean { key }) => handle_clean(key),
         Some(Commands::Command { snippet }) => handle_command(&snippet),
         None => {
@@ -60,13 +57,13 @@ fn main() {
 }
 
 fn handle_command(name: &str) -> Result<(), AppError> {
-    let CopyOutcome { key, relative_path, absolute_path } = mix::copy_snippet(name)?;
+    let CopyOutcome { key, relative_path, absolute_path } = mx::copy_snippet(name)?;
     println!("✅ Copied '{key}' from {relative_path} -> {}", absolute_path.display());
     Ok(())
 }
 
-fn handle_touch(key: &str, paste: bool, force: bool) -> Result<(), AppError> {
-    let outcome = mix::touch_context(key, paste, force)?;
+fn handle_touch(key: &str, force: bool) -> Result<(), AppError> {
+    let outcome = mx::touch_context(key, force)?;
 
     if outcome.overwritten {
         println!("✅ Context file overwritten: {}", outcome.path.display());
@@ -80,13 +77,13 @@ fn handle_touch(key: &str, paste: bool, force: bool) -> Result<(), AppError> {
 }
 
 fn handle_clean(key: Option<String>) -> Result<(), AppError> {
-    let outcome = mix::clean_context(key)?;
+    let outcome = mx::clean_context(key)?;
     println!("✅ {}", outcome.message);
     Ok(())
 }
 
 fn handle_list() -> Result<(), AppError> {
-    let entries = mix::list_snippets()?;
+    let entries = mx::list_snippets()?;
     if entries.is_empty() {
         println!("(no snippets found)");
         return Ok(());

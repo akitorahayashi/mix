@@ -33,6 +33,6 @@ pub fn list_snippets() -> Result<Vec<ListEntry>, AppError> {
     list_snippets::list(&storage)
 }
 
-pub fn touch_context(key: &str, paste: bool, force: bool) -> Result<TouchOutcome, AppError> {
-    touch::touch(key, force, paste)
+pub fn touch_context(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
+    touch::touch(key, force)
 }

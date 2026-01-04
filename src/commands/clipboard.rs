@@ -11,7 +11,7 @@ pub(crate) trait Clipboard {
 }
 
 pub(crate) fn clipboard_from_env() -> Result<Box<dyn Clipboard>, AppError> {
-    if let Ok(path) = env::var("MIX_CLIPBOARD_FILE") {
+    if let Ok(path) = env::var("MX_CLIPBOARD_FILE") {
         return Ok(Box::new(FileClipboard::new(PathBuf::from(path))?));
     }
 
@@ -45,11 +45,11 @@ pub(crate) struct SystemClipboard {
 
 impl SystemClipboard {
     fn detect() -> Result<Self, AppError> {
-        if let Ok(custom) = env::var("MIX_CLIPBOARD_CMD") {
+        if let Ok(custom) = env::var("MX_CLIPBOARD_CMD") {
             let mut parts = custom.split_whitespace();
             let program = parts
                 .next()
-                .ok_or_else(|| AppError::clipboard_error("MIX_CLIPBOARD_CMD is empty"))?;
+                .ok_or_else(|| AppError::clipboard_error("MX_CLIPBOARD_CMD is empty"))?;
             let args: Vec<String> = parts.map(|s| s.to_string()).collect();
             // For custom commands, assume same command for both copy and paste (copy via stdin, paste via stdout)
             let copy_cmd = ClipboardCommand { program: program.to_string(), args: args.clone() };
@@ -97,7 +97,7 @@ impl SystemClipboard {
         }
 
         Err(AppError::clipboard_error(
-            "No supported clipboard command found. Install wl-copy or xclip, or set MIX_CLIPBOARD_FILE.",
+            "No supported clipboard command found. Install wl-copy or xclip, or set MX_CLIPBOARD_FILE.",
         ))
     }
 

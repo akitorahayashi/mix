@@ -10,13 +10,13 @@ pub(crate) struct SnippetStorage {
 
 impl SnippetStorage {
     pub fn new_default() -> Result<Self, AppError> {
-        if let Ok(custom) = env::var("MIX_COMMANDS_ROOT") {
+        if let Ok(custom) = env::var("MX_COMMANDS_ROOT") {
             return Self::from_root(PathBuf::from(custom));
         }
 
         let home = env::var("HOME")
             .map_err(|_| AppError::config_error("HOME environment variable not set"))?;
-        let root = PathBuf::from(home).join(".config").join("mix");
+        let root = PathBuf::from(home).join(".config").join("mx");
         Self::from_root(root)
     }
 
