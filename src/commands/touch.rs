@@ -315,7 +315,7 @@ mod tests {
         let result = validate_path("../hack", &resolved);
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(msg)) = result {
-            assert!(msg.contains("outside of .mx"));
+            assert_eq!(msg, "Invalid path. Cannot create files outside of .mx directory.");
         } else {
             panic!("Expected PathTraversal error");
         }

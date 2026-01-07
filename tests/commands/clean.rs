@@ -39,7 +39,7 @@ fn clean_full_directory() {
         .arg("clean")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Removed .mx directory"));
+        .stdout(predicate::str::eq("Removed .mx directory\n"));
 
     assert!(!dir.path().join(".mx").exists());
 }

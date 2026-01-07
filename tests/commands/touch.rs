@@ -183,7 +183,7 @@ fn touch_path_traversal_rejected() {
         .arg("../hack")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("outside of .mx"));
+        .stderr(predicate::str::eq("Error: Invalid path. Cannot create files outside of .mx directory.\n"));
 
     assert!(!temp.path().join("hack.md").exists());
     assert!(!temp.path().join("hack").exists());
@@ -200,7 +200,7 @@ fn touch_path_traversal_embedded_rejected() {
         .arg("foo/../bar")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("outside of .mx"));
+        .stderr(predicate::str::eq("Error: Invalid path. Cannot create files outside of .mx directory.\n"));
 }
 
 #[test]
