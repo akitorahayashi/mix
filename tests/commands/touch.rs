@@ -27,7 +27,7 @@ fn touch_creates_context_files() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    let mx_dir = temp.path().join("mx");
+    let mx_dir = temp.path().join(".mx");
     assert!(mx_dir.exists());
     assert!(mx_dir.join(".gitignore").exists());
     assert!(mx_dir.join("tasks.md").exists());
@@ -48,13 +48,13 @@ fn touch_nested_files() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    assert!(temp.path().join("mx/pending/tasks.md").exists());
+    assert!(temp.path().join(".mx/pending/tasks.md").exists());
 }
 
 #[test]
 fn touch_existing_file_shows_warning() {
     let temp = tempdir().unwrap();
-    let tasks_md = temp.path().join("mx/tasks.md");
+    let tasks_md = temp.path().join(".mx/tasks.md");
     fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
     fs::File::create(&tasks_md).unwrap();
 
@@ -71,7 +71,7 @@ fn touch_existing_file_shows_warning() {
 #[test]
 fn touch_force_overwrites() {
     let temp = tempdir().unwrap();
-    let tasks_md = temp.path().join("mx/tasks.md");
+    let tasks_md = temp.path().join(".mx/tasks.md");
     fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
     fs::write(&tasks_md, "original content").unwrap();
 
@@ -96,7 +96,7 @@ fn touch_force_overwrites() {
 #[test]
 fn touch_without_force_preserves_existing() {
     let temp = tempdir().unwrap();
-    let tasks_md = temp.path().join("mx/tasks.md");
+    let tasks_md = temp.path().join(".mx/tasks.md");
     fs::create_dir_all(tasks_md.parent().unwrap()).unwrap();
     fs::write(&tasks_md, "original content").unwrap();
 
@@ -129,7 +129,7 @@ fn touch_dynamic_simple() {
         .stdout(predicate::str::contains("✅ Context file created"))
         .stdout(predicate::str::contains("random_name.md"));
 
-    assert!(temp.path().join("mx/random_name.md").exists());
+    assert!(temp.path().join(".mx/random_name.md").exists());
 }
 
 #[test]
@@ -147,9 +147,9 @@ fn touch_dynamic_nested() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    assert!(temp.path().join("mx/a/b/c.md").exists());
-    assert!(temp.path().join("mx/a/b").is_dir());
-    assert!(temp.path().join("mx/a").is_dir());
+    assert!(temp.path().join(".mx/a/b/c.md").exists());
+    assert!(temp.path().join(".mx/a/b").is_dir());
+    assert!(temp.path().join(".mx/a").is_dir());
 }
 
 #[test]
@@ -168,8 +168,8 @@ fn touch_with_extension() {
         .stdout(predicate::str::contains("✅ Context file created"))
         .stdout(predicate::str::contains("data.json"));
 
-    assert!(temp.path().join("mx/data.json").exists());
-    assert!(!temp.path().join("mx/data.json.md").exists());
+    assert!(temp.path().join(".mx/data.json").exists());
+    assert!(!temp.path().join(".mx/data.json.md").exists());
 }
 
 #[test]
@@ -183,7 +183,7 @@ fn touch_path_traversal_rejected() {
         .arg("../hack")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("outside of mx"));
+        .stderr(predicate::str::eq("Error: Invalid path. Cannot create files outside of .mx directory.\n"));
 
     assert!(!temp.path().join("hack.md").exists());
     assert!(!temp.path().join("hack").exists());
@@ -200,7 +200,7 @@ fn touch_path_traversal_embedded_rejected() {
         .arg("foo/../bar")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("outside of mx"));
+        .stderr(predicate::str::eq("Error: Invalid path. Cannot create files outside of .mx directory.\n"));
 }
 
 #[test]
@@ -218,7 +218,7 @@ fn touch_pending_prefix() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    assert!(temp.path().join("mx/pending/testdoc.md").exists());
+    assert!(temp.path().join(".mx/pending/testdoc.md").exists());
 }
 
 #[test]
@@ -237,7 +237,7 @@ fn touch_pastes_clipboard_by_default() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    let tasks_file = temp.path().join("mx/tasks.md");
+    let tasks_file = temp.path().join(".mx/tasks.md");
     assert!(tasks_file.exists());
     let content = fs::read_to_string(&tasks_file).unwrap();
     assert_eq!(content, clipboard_content);
@@ -259,7 +259,7 @@ fn touch_with_numbered_alias() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    let numbered_file = temp.path().join("mx/tasks/tasks1.md");
+    let numbered_file = temp.path().join(".mx/tasks/tasks1.md");
     assert!(numbered_file.exists());
     let content = fs::read_to_string(&numbered_file).unwrap();
     assert_eq!(content, clipboard_content);
@@ -280,7 +280,7 @@ fn touch_empty_clipboard() {
         .success()
         .stdout(predicate::str::contains("✅ Context file created"));
 
-    let empty_file = temp.path().join("mx/empty.md");
+    let empty_file = temp.path().join(".mx/empty.md");
     assert!(empty_file.exists());
     let content = fs::read_to_string(&empty_file).unwrap();
     assert_eq!(content, "");

@@ -134,13 +134,13 @@ mod tests {
     #[serial]
     fn copy_snippet_expands_placeholders_into_clipboard() {
         let storage = TestSnippetStorage::new();
-        storage.write_snippet("commands/w/wc.md", "Section:\n{{mx/info.md}}\nDone");
+        storage.write_snippet("commands/w/wc.md", "Section:\n{{.mx/info.md}}\nDone");
         let clipboard = recording_clipboard();
 
         let project_root = tempdir().expect("temp project root");
         let _guard = DirGuard::set(project_root.path());
-        fs::create_dir_all(project_root.path().join("mx")).expect("create mx");
-        fs::write(project_root.path().join("mx/info.md"), "dynamic info").expect("write info");
+        fs::create_dir_all(project_root.path().join(".mx")).expect("create .mx");
+        fs::write(project_root.path().join(".mx/info.md"), "dynamic info").expect("write info");
 
         let result = CopySnippet { query: "wc" }
             .execute(&storage.storage, clipboard.as_ref())
@@ -166,10 +166,10 @@ mod tests {
     #[test]
     fn expand_placeholders_inserts_file_contents() {
         let root = tempdir().expect("temp root");
-        fs::create_dir_all(root.path().join("mx")).expect("create mx dir");
-        fs::write(root.path().join("mx/tasks.md"), "todo list").expect("write tasks");
+        fs::create_dir_all(root.path().join(".mx")).expect("create .mx dir");
+        fs::write(root.path().join(".mx/tasks.md"), "todo list").expect("write tasks");
 
-        let source = "Next:\n{{mx/tasks.md}}";
+        let source = "Next:\n{{.mx/tasks.md}}";
         let expanded = expand_placeholders(source, Some(root.path()));
 
         assert_eq!(expanded, "Next:\ntodo list");
@@ -178,9 +178,9 @@ mod tests {
     #[test]
     fn expand_placeholders_handles_missing_files() {
         let root = tempdir().expect("temp root");
-        let expanded = expand_placeholders("Missing: {{mx/none.md}}", Some(root.path()));
+        let expanded = expand_placeholders("Missing: {{.mx/none.md}}", Some(root.path()));
 
-        assert!(expanded.contains("[mx missing: mx/none.md"));
+        assert!(expanded.contains("[mx missing: .mx/none.md"));
     }
 
     #[test]
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn expand_placeholders_skips_when_no_root() {
-        let expanded = expand_placeholders("{{mx/tasks.md}}", None);
-        assert_eq!(expanded, "{{mx/tasks.md}}");
+        let expanded = expand_placeholders("{{.mx/tasks.md}}", None);
+        assert_eq!(expanded, "{{.mx/tasks.md}}");
     }
 }

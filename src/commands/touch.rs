@@ -33,7 +33,7 @@ pub struct TouchOutcome {
     pub overwritten: bool,
 }
 
-/// Resolves an input key to a relative path within the `mx/` directory.
+/// Resolves an input key to a relative path within the `.mx/` directory.
 ///
 /// Resolution priority:
 /// 1. Check if key matches a predefined alias
@@ -82,7 +82,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
     // rejection for the most common traversal attempts.
     if key.contains("..") {
         return Err(AppError::path_traversal(
-            "Invalid path. Cannot create files outside of mx directory.",
+            "Invalid path. Cannot create files outside of .mx directory.",
         ));
     }
 
@@ -101,7 +101,7 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
             // - `Prefix` (`C:`): Blocks Windows absolute paths.
             _ => {
                 return Err(AppError::path_traversal(
-                    "Invalid path. Cannot create files outside of mx directory.",
+                    "Invalid path. Cannot create files outside of .mx directory.",
                 ));
             }
         }
@@ -111,9 +111,9 @@ pub fn validate_path(key: &str, resolved: &Path) -> Result<(), AppError> {
 }
 pub fn touch(key: &str, force: bool) -> Result<TouchOutcome, AppError> {
     let root = find_project_root()?;
-    let mx_dir = root.join("mx");
+    let mx_dir = root.join(".mx");
 
-    // 1. Create mx directory
+    // 1. Create .mx directory
     if !mx_dir.exists() {
         fs::create_dir(&mx_dir)?;
     }
@@ -315,7 +315,7 @@ mod tests {
         let result = validate_path("../hack", &resolved);
         assert!(result.is_err());
         if let Err(AppError::PathTraversal(msg)) = result {
-            assert!(msg.contains("outside of mx"));
+            assert_eq!(msg, "Invalid path. Cannot create files outside of .mx directory.");
         } else {
             panic!("Expected PathTraversal error");
         }
@@ -339,12 +339,12 @@ mod tests {
 
         let outcome = touch("tk", false).unwrap();
 
-        assert!(dir.path().join("mx").exists());
-        assert!(dir.path().join("mx/.gitignore").exists());
-        let gitignore_content = fs::read_to_string(dir.path().join("mx/.gitignore")).unwrap();
+        assert!(dir.path().join(".mx").exists());
+        assert!(dir.path().join(".mx/.gitignore").exists());
+        let gitignore_content = fs::read_to_string(dir.path().join(".mx/.gitignore")).unwrap();
         assert_eq!(gitignore_content.trim(), "*");
         assert_eq!(outcome.key, "tk");
-        assert!(outcome.path.ends_with("mx/tasks.md"));
+        assert!(outcome.path.ends_with(".mx/tasks.md"));
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -359,7 +359,7 @@ mod tests {
 
         let outcome = touch("pdt", false).unwrap();
 
-        assert!(dir.path().join("mx/pending/tasks.md").exists());
+        assert!(dir.path().join(".mx/pending/tasks.md").exists());
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -390,7 +390,7 @@ mod tests {
         setup_clipboard(dir.path(), clipboard_content);
 
         // Create file with content
-        let path = dir.path().join("mx/tasks.md");
+        let path = dir.path().join(".mx/tasks.md");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, "initial content").unwrap();
 
@@ -414,7 +414,7 @@ mod tests {
 
         let outcome = touch("random_name", false).unwrap();
 
-        assert!(dir.path().join("mx/random_name.md").exists());
+        assert!(dir.path().join(".mx/random_name.md").exists());
         assert!(!outcome.existed);
         assert!(outcome.path.ends_with("random_name.md"));
 
@@ -430,8 +430,8 @@ mod tests {
 
         let outcome = touch("a/b/c", false).unwrap();
 
-        assert!(dir.path().join("mx/a/b/c.md").exists());
-        assert!(dir.path().join("mx/a/b").is_dir());
+        assert!(dir.path().join(".mx/a/b/c.md").exists());
+        assert!(dir.path().join(".mx/a/b").is_dir());
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -446,8 +446,8 @@ mod tests {
 
         let outcome = touch("data.json", false).unwrap();
 
-        assert!(dir.path().join("mx/data.json").exists());
-        assert!(!dir.path().join("mx/data.json.md").exists());
+        assert!(dir.path().join(".mx/data.json").exists());
+        assert!(!dir.path().join(".mx/data.json.md").exists());
         assert!(!outcome.existed);
 
         cleanup_clipboard_env();
@@ -467,7 +467,7 @@ mod tests {
         } else {
             panic!("Expected PathTraversal error");
         }
-        // Ensure no file was created outside mx
+        // Ensure no file was created outside .mx
         assert!(!dir.path().join("hack.md").exists());
     }
 }

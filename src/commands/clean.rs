@@ -8,16 +8,16 @@ pub struct CleanOutcome {
 
 pub fn clean(key: Option<String>) -> Result<CleanOutcome, AppError> {
     let root = find_project_root()?;
-    let mx_dir = root.join("mx");
+    let mx_dir = root.join(".mx");
 
     match key {
         None => {
-            // mx clean (Delete mx root)
+            // mx clean (Delete .mx root)
             if mx_dir.exists() {
                 fs::remove_dir_all(&mx_dir)?;
-                Ok(CleanOutcome { message: "Removed mx directory".to_string() })
+                Ok(CleanOutcome { message: "Removed .mx directory".to_string() })
             } else {
-                Ok(CleanOutcome { message: "mx directory not found".to_string() })
+                Ok(CleanOutcome { message: ".mx directory not found".to_string() })
             }
         }
         Some(k) => {
