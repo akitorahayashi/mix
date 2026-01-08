@@ -4,7 +4,7 @@
 
 1. **Snippet command** – type `mx command <snippet>` (alias `mx c`) to stream any markdown snippet under
    `~/.config/mx/commands/` into your clipboard.
-2. **Context Orchestration** – type `mx touch <key>` (alias `mx t`) to create context files in your project with clipboard content.
+2. **Context Orchestration** – type `mx touch <key>` (alias `mx t`) to create context files in your project with clipboard content, and `mx cat <key>` (alias `mx ct`) to view their contents.
 
 ## Storage layout
 
@@ -36,6 +36,12 @@ mx touch tk   # Creates .mx/tasks.md with clipboard content
 mx t rq       # Creates .mx/requirements.md with clipboard content
 mx t pdt      # Creates .mx/pending/tasks.md with clipboard content
 mx t tk1      # Creates .mx/tasks/tasks1.md (dynamic numbered alias)
+
+# View context file contents (alias: mx ct)
+mx cat tk     # Displays contents of .mx/tasks.md
+mx ct rq      # Displays contents of .mx/requirements.md
+mx ct pdt     # Displays contents of .mx/pending/tasks.md
+mx ct docs/spec  # Displays contents of .mx/docs/spec.md
 
 # Force overwrite existing files
 mx t tk --force      # Overwrites .mx/tasks.md with clipboard content
@@ -94,7 +100,7 @@ To overwrite an existing file, use the `--force` (or `-f`) flag. This will overw
 **Common workflow**:
 1. Copy error message or specification from browser
 2. Run `mx t er` to save it as `.mx/error.md`
-3. Reference it in your work or use template placeholders like `{{.mx/error.md}}`
+3. View it with `mx ct er` or reference it in your work using template placeholders like `{{.mx/error.md}}`
 
 ### Template placeholders (dynamic context)
 

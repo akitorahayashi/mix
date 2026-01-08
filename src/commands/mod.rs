@@ -1,3 +1,4 @@
+pub(crate) mod cat;
 pub(crate) mod clean;
 pub(crate) mod clipboard;
 pub(crate) mod copy_snippet;

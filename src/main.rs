@@ -24,6 +24,9 @@ enum Commands {
         #[arg(short = 'f', long = "force")]
         force: bool,
     },
+    /// Display context file contents
+    #[command(visible_alias = "ct")]
+    Cat { key: String },
     /// Clean context files or directory
     #[command(visible_alias = "cl")]
     Clean {
@@ -41,6 +44,7 @@ fn main() {
     let result = match cli.command {
         Some(Commands::List) => handle_list(),
         Some(Commands::Touch { key, force }) => handle_touch(&key, force),
+        Some(Commands::Cat { key }) => handle_cat(&key),
         Some(Commands::Clean { key }) => handle_clean(key),
         Some(Commands::Command { snippet }) => handle_command(&snippet),
         None => {
@@ -59,6 +63,12 @@ fn main() {
 fn handle_command(name: &str) -> Result<(), AppError> {
     let CopyOutcome { key, relative_path, absolute_path } = mx::copy_snippet(name)?;
     println!("✅ Copied '{key}' from {relative_path} -> {}", absolute_path.display());
+    Ok(())
+}
+
+fn handle_cat(key: &str) -> Result<(), AppError> {
+    let content = mx::cat_context(key)?;
+    print!("{}", content);
     Ok(())
 }
 

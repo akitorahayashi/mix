@@ -5,6 +5,7 @@ pub mod error;
 mod commands;
 mod storage;
 
+use commands::cat;
 use commands::clean;
 use commands::clipboard::clipboard_from_env;
 use commands::copy_snippet::CopySnippet;
@@ -17,6 +18,10 @@ pub use commands::clean::CleanOutcome;
 pub use commands::copy_snippet::CopyOutcome;
 pub use commands::list_snippets::ListEntry;
 pub use commands::touch::TouchOutcome;
+
+pub fn cat_context(key: &str) -> Result<String, AppError> {
+    cat::cat(key)
+}
 
 pub fn clean_context(key: Option<String>) -> Result<CleanOutcome, AppError> {
     clean::clean(key)

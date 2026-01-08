@@ -97,12 +97,12 @@ mod tests {
     use tempfile::tempdir;
 
     struct DirGuard {
-        original: std::path::PathBuf,
+        original: Option<std::path::PathBuf>,
     }
 
     impl DirGuard {
         fn set(dir: &Path) -> Self {
-            let original = env::current_dir().expect("read cwd");
+            let original = env::current_dir().ok();
             env::set_current_dir(dir).expect("set cwd");
             Self { original }
         }
@@ -110,7 +110,9 @@ mod tests {
 
     impl Drop for DirGuard {
         fn drop(&mut self) {
-            let _ = env::set_current_dir(&self.original);
+            if let Some(ref original) = self.original {
+                let _ = env::set_current_dir(original);
+            }
         }
     }
 
@@ -138,9 +140,10 @@ mod tests {
         let clipboard = recording_clipboard();
 
         let project_root = tempdir().expect("temp project root");
-        let _guard = DirGuard::set(project_root.path());
         fs::create_dir_all(project_root.path().join(".mx")).expect("create .mx");
         fs::write(project_root.path().join(".mx/info.md"), "dynamic info").expect("write info");
+
+        let _guard = DirGuard::set(project_root.path());
 
         let result = CopySnippet { query: "wc" }
             .execute(&storage.storage, clipboard.as_ref())
@@ -149,6 +152,9 @@ mod tests {
         assert_eq!(result.key, "wc");
         assert!(clipboard.contents().contains("dynamic info"));
         assert_eq!(clipboard.contents(), "Section:\ndynamic info\nDone");
+
+        // Explicitly drop guard before project_root
+        drop(_guard);
     }
 
     #[test]

@@ -39,6 +39,9 @@ It uses a layered architecture (CLI -> Commands -> Core -> Storage) and relies o
         - Supports predefined aliases (tk, rq, rv, df, pdt, pdr, wn, er)
         - Supports dynamic paths with auto `.md` extension and directory creation
         - Example: `mx t docs/spec` creates `.mx/docs/spec.md` with clipboard content
+    - `mx cat <key>` / `mx ct <key>`: Display the contents of context files from `.mx/` directory.
+        - Uses the same path resolution as `touch` (aliases, dynamic paths, etc.)
+        - Example: `mx ct tk` displays contents of `.mx/tasks.md`
 - **Linting**:
     - `cargo fmt --check`: Check code formatting.
     - `cargo clippy --all-targets --all-features -- -D warnings`: Run the linter and check for warnings.
